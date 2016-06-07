@@ -23,10 +23,10 @@ BLUE = (0.0, 0.0, 1.0)
 redSq = mscreen.drawLine(POINTS, RED, width=2)
 
 greenSq = mscreen.drawLine(POINTS, GREEN, width=3)
-greenSq.move(0, 5.0, 0)
+greenSq.move(y=5.0)  # or greenSq.move(0.0, 5.0, 0.0)
 
 blueSq = mscreen.drawLine(POINTS, BLUE, width=1)
-blueSq.move(0, 10.0, 0)
+blueSq.move(y=10.0)
 
 # refresh the view, this is done explicitly to not slow down batch drawing
 mscreen.refresh()
