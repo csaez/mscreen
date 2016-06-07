@@ -1,4 +1,3 @@
-# MScreen is a manager allowing to draw OpenGL on Maya's viewport
 # Copyright (R) 2016 Cesar Saez
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -78,7 +77,7 @@ class Line(Primitive):
         view.endGL()
 
 
-class Manager(object):
+class SceneManager(object):
     view = omui.M3dView.active3dView()
     renderer = omr.MHardwareRenderer.theRenderer()
 
@@ -141,11 +140,11 @@ class Manager(object):
         return currentModelPanel
 
 
-_m = Manager()  # singleton
-clear = _m.clear
-refresh = _m.refresh
-drawLine = _m.drawLine
-erase = _m.unregisterPrim
+_scn = SceneManager()  # singleton
+clear = _scn.clear
+refresh = _scn.refresh
+drawLine = _scn.drawLine
+erase = _scn.unregisterPrim
 
 
 __all__ = ['clear', 'refresh', 'drawLine', 'erase']
