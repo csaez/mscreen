@@ -14,20 +14,24 @@ demo:
 import mscreen
 
 
-# Lets draw some lines...
+# Lets draw some squares...
 POINTS = ((2.0, 0.0, 2.0), (2.0, 0.0, -2.0), (-2.0, 0.0,-2.0), (-2.0, 0.0, 2.0), (2.0, 0.0, 2.0))
 
 RED = (1.0, 0.0, 0.0)
 GREEN = (0.0, 1.0, 0.0)
 BLUE = (0.0, 0.0, 1.0)
 
-redSq = mscreen.drawLine(POINTS, RED, width=2)
+redSq = mscreen.drawLine(POINTS, RED)
 
-greenSq = mscreen.drawLine(POINTS, GREEN, width=3)
-greenSq.move(0, 5.0, 0)
+greenSq = mscreen.drawLine(POINTS, GREEN)
+greenSq.rotate(90, 0, 0)
 
-blueSq = mscreen.drawLine(POINTS, BLUE, width=1)
-blueSq.move(0, 10.0, 0)
+blueSq = mscreen.drawLine(POINTS, BLUE)
+blueSq.rotate(90, 90, 0)
+
+# @note: lines fully support transformations, you can access it's
+#        MTransformationMatrix (om2) by calling my_line.transform.
+#        Or offset the current transform via move/rotate/scale methods.
 
 # refresh the view, this is done explicitly to not slow down batch drawing
 mscreen.refresh()

@@ -19,31 +19,68 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import math
 import logging
 logger = logging.getLogger(__name__)
 
 try:
     import maya.cmds as mc
+    import maya.OpenMaya as om
     import maya.OpenMayaUI as omui
     import maya.OpenMayaRender as omr
+    import maya.api.OpenMaya as om2
 except ImportError:
     import mock
     logger.debug('maya not found')
-    mc = omui = omr = mock.MagicMock()
+    mc = om = omui = omr = om2 = mock.MagicMock()
 
 
 class Primitive(object):
     def __init__(self):
-        self.points = []
-        self.color = [0.0, 0.0, 0.0]
+        self.transform = om2.MTransformationMatrix()
+        self._points = []  # drawable points
+        self.__points = []  # pre-transform points
+        self.color = [0.0, 0.0, 0.0]  # normalized rgb
 
-    def move(self, x=0.0, y=0.0, z=0.0):
-        points = []
-        offset = (x, y, z)
-        for point in self.points:
-            coord = [float(p + offset[i]) for i, p in enumerate(point)]
-            points.append(coord)
-        self.points = points
+    @property
+    def points(self):
+        return self._points
+
+    @points.setter
+    def points(self, value):
+        self.__points = list(value)  # copy
+        self.updatePoints()
+
+    def updatePoints(self):
+        self._points = []
+        matrix = self.transform.asMatrix()
+        for i in xrange(len(self.__points)):
+            point = om2.MPoint(self.__points[i])
+            point *= matrix
+            self._points.append(point)
+
+    def move(self, x=0.0, y=0.0, z=0.0, update=True):
+        offset = om2.MVector(x, y, z)
+        self.transform.translateBy(offset, om2.MSpace.kWorld)
+        if update:
+            self.updatePoints()
+
+    def rotate(self, x=0.0, y=0.0, z=0.0, asDegrees=True, update=True):
+        if asDegrees:
+            x = math.radians(x)
+            y = math.radians(y)
+            z = math.radians(z)
+        euler = (x, y, z, om2.MTransformationMatrix.kXYZ)
+        self.transform.rotateByComponents(euler, om2.MSpace.kWorld,
+                                          asQuaternion=False)
+        if update:
+            self.updatePoints()
+
+    def scale(self, x=0.0, y=0.0, z=0.0, update=True):
+        offset = om2.MVector(x, y, z)
+        self.transform.scaleBy(offset, om2.MSpace.kWorld)
+        if update:
+            self.updatePoints()
 
     def draw(self, view, renderer):
         raise Exception('To be implemented')
@@ -53,9 +90,10 @@ class Line(Primitive):
     def __init__(self, points=None, color=None, width=2.0):
         super(Line, self).__init__()
 
-        self.points = points or self.points
         self.color = color or self.color
         self.width = width
+        if points:
+            self.points = points
 
     def draw(self, view, renderer):
         view.beginGL()
@@ -70,8 +108,8 @@ class Line(Primitive):
 
         # set points
         for point in self.points:
-            x, y, z = [float(x) for x in point]
-            glFT.glVertex3f(x, y, z)
+            print point
+            glFT.glVertex3f(point.x, point.y, point.z)
 
         glFT.glEnd()
         glFT.glPopAttrib()
@@ -141,7 +179,9 @@ class Manager(object):
         return currentModelPanel
 
 
+# @TODO: consider reloads? otherwise manager get flushed
 _m = Manager()  # singleton
+
 clear = _m.clear
 refresh = _m.refresh
 drawLine = _m.drawLine
