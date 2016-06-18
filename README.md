@@ -30,7 +30,7 @@ greenSq.rotate(90, 0, 0)
 blueSq = mscreen.drawLine(POINTS, BLUE)
 blueSq.rotate(90, 90, 0)
 
-# @note: lines fully support transformations, you can access it's
+# @note: lines fully support transformations, you can access its
 #        MTransformationMatrix (om2) by calling my_line.transform.
 #        Or offset the current transform via move/rotate/scale methods.
 
@@ -46,6 +46,9 @@ mscreen.refresh()
 mscreen.clear()  # or just wipeout the entire screen
 mscreen.refresh()
 ```
+
+For more examples check
+['tests'](https://github.com/csaez/mscreen/tree/master/tests).
 
 ## License
 
