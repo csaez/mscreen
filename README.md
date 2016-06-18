@@ -48,7 +48,7 @@ mscreen.refresh()
 ```
 
 For more examples check
-['tests'](https://github.com/csaez/mscreen/tree/master/tests).
+[`tests`](https://github.com/csaez/mscreen/tree/master/tests).
 
 ## License
 
