@@ -34,35 +34,24 @@ except ImportError:
     mc = om = omui = omr = om2 = mock.MagicMock()
 
 
-class Primitive(object):
+class TransformBase(object):
     def __init__(self):
-        self.transform = om2.MTransformationMatrix()
-        self._points = []  # drawable points
-        self.__points = []  # pre-transform points
-        self.color = [0.0, 0.0, 0.0]  # normalized rgb
+        self._transform = om2.MTransformationMatrix()
 
     @property
-    def points(self):
-        return self._points
+    def transform(self):
+        return self._transform
 
-    @points.setter
-    def points(self, value):
-        self.__points = list(value)  # copy
-        self.updatePoints()
-
-    def updatePoints(self):
-        self._points = []
-        matrix = self.transform.asMatrix()
-        for i in xrange(len(self.__points)):
-            point = om2.MPoint(self.__points[i])
-            point *= matrix
-            self._points.append(point)
+    @transform.setter
+    def transform(self, value):
+        self._transform = om2.MTransformationMatrix(value)  # copy
+        self.update()
 
     def move(self, x=0.0, y=0.0, z=0.0, update=True):
         offset = om2.MVector(x, y, z)
         self.transform.translateBy(offset, om2.MSpace.kWorld)
         if update:
-            self.updatePoints()
+            self.update()
 
     def rotate(self, x=0.0, y=0.0, z=0.0, asDegrees=True, update=True):
         if asDegrees:
@@ -73,26 +62,48 @@ class Primitive(object):
         self.transform.rotateByComponents(euler, om2.MSpace.kWorld,
                                           asQuaternion=False)
         if update:
-            self.updatePoints()
+            self.update()
 
     def scale(self, x=0.0, y=0.0, z=0.0, update=True):
         offset = om2.MVector(x, y, z)
         self.transform.scaleBy(offset, om2.MSpace.kWorld)
         if update:
-            self.updatePoints()
+            self.update()
+
+    def update(self):
+        raise Exception('To be implemented')
 
     def draw(self, view, renderer):
         raise Exception('To be implemented')
 
 
-class Line(Primitive):
+class LinePrim(TransformBase):
     def __init__(self, points=None, color=None, width=2.0):
-        super(Line, self).__init__()
+        super(LinePrim, self).__init__()
+        self._points = []  # drawable points
+        self._prePoints = []  # pre-transform points
 
-        self.color = color or self.color
         self.width = width
+        self.color = color or [0.0, 0.0, 0.0]  # normalized rgb
         if points:
             self.points = points
+
+    @property
+    def points(self):
+        return self._points
+
+    @points.setter
+    def points(self, value):
+        self._prePoints = list(value)  # copy
+        self.update()
+
+    def update(self):
+        self._points = []
+        matrix = self.transform.asMatrix()
+        for i in xrange(len(self._prePoints)):
+            point = om2.MPoint(self._prePoints[i])
+            point *= matrix
+            self._points.append(point)
 
     def draw(self, view, renderer):
         view.beginGL()
@@ -112,6 +123,67 @@ class Line(Primitive):
         glFT.glEnd()
         glFT.glPopAttrib()
         view.endGL()
+
+
+class VectorPrim(LinePrim):
+    def __init__(self, vector, size=1.0, color=None):
+        self._size = size
+        _points = ((0, 0, 0), [x * self.size for x in vector])
+        super(VectorPrim, self).__init__(_points, color)
+        self._width = self.width
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = value
+        self.width = self._width * self.size
+        self.update()
+
+    def update(self):
+        self._points = []
+        xfo = om2.MTransformationMatrix(self.transform)
+        size = om2.MVector(self.size, self.size, self.size)
+        xfo.scaleBy(size, om2.MSpace.kWorld)
+        matrix = xfo.asMatrix()
+        for i in xrange(len(self._prePoints)):
+            point = om2.MPoint(self._prePoints[i])
+            point *= matrix
+            self._points.append(point)
+
+
+class TransformPrim(TransformBase):
+    X_COLOUR = (1.0, 0.0, 0.0)
+    Y_COLOUR = (0.0, 1.0, 0.0)
+    Z_COLOUR = (0.0, 0.0, 1.0)
+
+    def __init__(self, transform=None, size=1.0):
+        self._xAxis = VectorPrim((1, 0, 0), color=TransformPrim.X_COLOUR)
+        self._yAxis = VectorPrim((0, 1, 0), color=TransformPrim.Y_COLOUR)
+        self._zAxis = VectorPrim((0, 0, 1), color=TransformPrim.Z_COLOUR)
+        self._transform = transform or om2.MTransformationMatrix()
+        self.size = size
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        for each in (self._xAxis, self._yAxis, self._zAxis):
+            each.size = value
+
+    def update(self):
+        for each in (self._xAxis, self._yAxis, self._zAxis):
+            each.update()
+
+    def draw(self, view, renderer):
+        for each in (self._xAxis, self._yAxis, self._zAxis):
+            if each.transform != self.transform:
+                each.transform = self.transform
+            each.draw(view, renderer)
 
 
 class SceneManager(object):
@@ -156,15 +228,26 @@ class SceneManager(object):
         self.view.refresh(True, True)
 
     def drawLine(self, points, color=None, width=2.0):
-        '''
-        Draw a line given the following parameters
-        @param points: ((x0, y0, z0), (x1, y1, z1)... (xn, yn, zn))
-        @param color: (r, g, b)
-        @param width: line width in pixels, default to 2 pixels
-        '''
-        line = Line(points, color, width)
+        line = LinePrim(points, color, width)
         self.registerPrim(line)
         return line
+
+    def drawTransform(self, transform=None):
+        transform = transform or om2.MTransformationMatrix()
+        if not isinstance(transform, om2.MTransformationMatrix):
+            if isinstance(transform, (tuple, list)) and len(transform) >= 16:
+                matrix = om2.MMatrix(transform)
+                transform = om2.MTransformationMatrix(matrix)
+            else:
+                logger.error(
+                    'Invalid argument, transform is expected to be a sequence'
+                    'of 16 float values, four tuples of four float values'
+                    'each, a MMatrix or a MTransformationMatrix (om2), {}'
+                    'found instead.'.format(transform))
+                return
+        xfo = TransformPrim(transform)
+        self.registerPrim(xfo)
+        return xfo
 
     @staticmethod
     def getCurrentModelPanel():
@@ -181,7 +264,8 @@ _scn = SceneManager()  # singleton
 clear = _scn.clear
 refresh = _scn.refresh
 drawLine = _scn.drawLine
+drawTransform = _scn.drawTransform
 erase = _scn.unregisterPrim
 
 
-__all__ = ['clear', 'refresh', 'drawLine', 'erase']
+__all__ = ['clear', 'refresh', 'drawLine', 'drawTransform', 'erase']

@@ -1,2 +1,2 @@
 venv/
-mscreen.pyc
+*.py[co]
