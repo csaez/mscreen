@@ -1,2 +1,4 @@
 venv/
+build/
+*.egg-info/
 *.py[co]
