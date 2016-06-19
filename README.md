@@ -4,10 +4,9 @@ viewport.
 
 The goal is to offer TDs/TAs an easy way to draw basic GL primitives as visual
 feedback during debuging and/or in non-critical tools (the library is
-implemented in python, _do not expect high performance_).
+implemented in python, do not expect _high performance_).
 
 ## Features
-
 The feature set is quite sketchy at the moment, but here's a quick demo:
 
 ```python
@@ -16,53 +15,50 @@ import mscreen
 
 # Lets draw some squares...
 POINTS = ((2.0, 0.0, 2.0), (2.0, 0.0, -2.0), (-2.0, 0.0, -2.0),
-(-2.0, 0.0, 2.0), (2.0, 0.0, 2.0))
+          (-2.0, 0.0, 2.0), (2.0, 0.0, 2.0))
 
-RED = (1.0, 0.0, 0.0)
-GREEN = (0.0, 1.0, 0.0)
-BLUE = (0.0, 0.0, 1.0)
+mscreen.drawLine(POINTS, mscreen.COLOR_RED)
 
-redSq = mscreen.drawLine(POINTS, RED)
+sq1 = mscreen.drawLine(POINTS, mscreen.COLOR_GREEN)
+sq1.rotate(90, 0, 0)
 
-greenSq = mscreen.drawLine(POINTS, GREEN)
-greenSq.rotate(90, 0, 0)
+sq2 = mscreen.drawLine(POINTS, mscreen.COLOR_BLUE)
+sq2.rotate(90, 90, 0)
 
-blueSq = mscreen.drawLine(POINTS, BLUE)
-blueSq.rotate(90, 90, 0)
 
-# @note: lines fully support transformations, you can access its
-#        MTransformationMatrix (om2) by calling my_line.transform.
-#        Or offset the current transform via move/rotate/scale methods.
-
-# refresh the view, this is done explicitly to not slow down batch drawing
+# refresh the viewport, this is done explicitly to not slow down batch drawing
 mscreen.refresh()
 ```
 
 ```python
 # What about removing lines?
-mscreen.erase(greenSq)  # it can be done selectively
+mscreen.erase(sq1)  # it can be done selectively
 mscreen.refresh()
 
-mscreen.clear()  # or just wipeout the entire screen
+mscreen.clear()  # or just clear the entire screen
 mscreen.refresh()
 ```
 
-For more examples check
-[`tests`](https://github.com/csaez/mscreen/tree/master/tests).
+> `mscreen` primitives fully support transformations, you can access its
+> `MTransformationMatrix` (OpenMaya 2.0) by calling `my_prim.transform`.
+>
+> In addition you can offset the current transform via `move`/`rotate`/`scale`
+> convenience methods.
+
+Please check [`tests`](https://github.com/csaez/mscreen/tree/master/tests) for
+more examples.
 
 ## License
-
 `mscreen` is licensed under MIT, use at your own risk.
 
 
 ## Contribuiting
-
-It's early days, but please start a thread at [github's
+Please start a thread at [github's
 issues](https://github.com/csaez/mscreen/issues) to discuss features or changes
-on the code, the project is on very early alpha stages and all code is subject
-to evolve quite a bit.
+in the code, the project it's early days and all code is likely to evolve quite
+a bit.
 
-__Please don't start any work before having a discussion__. I really appretiate
-your contributions and would love to merge your extensions back, but pull
-requests are not likely to be accepted until we move to beta (let's iterate
-quickly and try new things for now).
+Again, __please don't start any work before having a discussion__. I really
+appretiate your contributions and would love to merge them back, but
+pull requests are not likely to be accepted until reach
+[v1.0.0](https://github.com/csaez/mscreen/milestones/v1.0.0).

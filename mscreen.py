@@ -309,7 +309,7 @@ class SceneManager(object):
     def refresh(self):
         self.view.refresh(True, True)
 
-    def drawLine(self, points, color=None, width=1):
+    def drawLine(self, points, color=None, width=2):
         line = LinePrim(points, color, width)
         self.registerPrim(line)
         return line
