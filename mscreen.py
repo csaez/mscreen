@@ -34,9 +34,12 @@ except ImportError:
     mc = om = omui = omr = om2 = mock.MagicMock()
 
 
-class TransformBase(object):
-    def __init__(self):
-        self._transform = om2.MTransformationMatrix()
+class Primitive(object):
+    def __init__(self, transform=None):
+        logger.debug('Initializing:', self)
+        self._transform = om2.MTransformationMatrix() if transform is None \
+            else om2.MTransformationMatrix(transform)
+        self.isDirty = False
 
     @property
     def transform(self):
@@ -44,16 +47,21 @@ class TransformBase(object):
 
     @transform.setter
     def transform(self, value):
-        self._transform = om2.MTransformationMatrix(value)  # copy
-        self.update()
+        value = om2.MTransformationMatrix(value)  # copy
+        if self._transform != value:
+            self._transform = value
+            self.isDirty = True
 
-    def move(self, x=0.0, y=0.0, z=0.0, update=True):
+    def move(self, x=0.0, y=0.0, z=0.0):
+        if x == y == z == 0.0:
+            return
         offset = om2.MVector(x, y, z)
         self.transform.translateBy(offset, om2.MSpace.kWorld)
-        if update:
-            self.update()
+        self.isDirty = True
 
-    def rotate(self, x=0.0, y=0.0, z=0.0, asDegrees=True, update=True):
+    def rotate(self, x=0.0, y=0.0, z=0.0, asDegrees=True):
+        if x == y == z == 0.0:
+            return
         if asDegrees:
             x = math.radians(x)
             y = math.radians(y)
@@ -61,30 +69,33 @@ class TransformBase(object):
         euler = (x, y, z, om2.MTransformationMatrix.kXYZ)
         self.transform.rotateByComponents(euler, om2.MSpace.kWorld,
                                           asQuaternion=False)
-        if update:
-            self.update()
+        self.isDirty = True
 
-    def scale(self, x=0.0, y=0.0, z=0.0, update=True):
+    def scale(self, x=0.0, y=0.0, z=0.0):
+        if x == y == z == 0.0:
+            return
         offset = om2.MVector(x, y, z)
         self.transform.scaleBy(offset, om2.MSpace.kWorld)
-        if update:
-            self.update()
+        self.isDirty = True
 
     def update(self):
-        raise Exception('To be implemented')
+        '''To be extended by subclasses'''
+        logger.debug('Updating:', self)
+        self.isDirty = False
 
     def draw(self, view, renderer):
-        raise Exception('To be implemented')
+        '''To be extended by subclasses'''
+        if self.isDirty:
+            self.update()
+        logger.debug('Drawing:', self)
 
 
-class LinePrim(TransformBase):
-    def __init__(self, points=None, color=None, width=2.0):
+class LinePrim(Primitive):
+    def __init__(self, points=None, colour=None, width=2):
         super(LinePrim, self).__init__()
-        self._points = []  # drawable points
-        self._prePoints = []  # pre-transform points
 
         self.width = width
-        self.color = color or [0.0, 0.0, 0.0]  # normalized rgb
+        self.colour = colour or [0.0, 0.0, 0.0]  # normalized rgb
         if points:
             self.points = points
 
@@ -95,9 +106,10 @@ class LinePrim(TransformBase):
     @points.setter
     def points(self, value):
         self._prePoints = list(value)  # copy
-        self.update()
+        self.isDirty = True
 
     def update(self):
+        super(LinePrim, self).update()
         self._points = []
         matrix = self.transform.asMatrix()
         for i in xrange(len(self._prePoints)):
@@ -106,17 +118,17 @@ class LinePrim(TransformBase):
             self._points.append(point)
 
     def draw(self, view, renderer):
+        super(LinePrim, self).draw(view, renderer)
+
         view.beginGL()
         glFT = renderer.glFunctionTable()
         glFT.glPushAttrib(omr.MGL_LINE_BIT)
         glFT.glLineWidth(self.width)
         glFT.glBegin(omr.MGL_LINE_STRIP)
 
-        # set color
-        r, g, b = [float(x) for x in self.color]
+        r, g, b = [float(x) for x in self.colour]
         glFT.glColor3f(r, g, b)
 
-        # set points
         for point in self.points:
             glFT.glVertex3f(point.x, point.y, point.z)
 
@@ -126,10 +138,10 @@ class LinePrim(TransformBase):
 
 
 class VectorPrim(LinePrim):
-    def __init__(self, vector, size=1.0, color=None):
+    def __init__(self, vector, size=1.0, colour=None):
         self._size = size
         _points = ((0, 0, 0), [x * self.size for x in vector])
-        super(VectorPrim, self).__init__(_points, color)
+        super(VectorPrim, self).__init__(_points, colour)
         self._width = self.width
 
     @property
@@ -139,10 +151,11 @@ class VectorPrim(LinePrim):
     @size.setter
     def size(self, value):
         self._size = value
-        self.width = self._width * self.size
-        self.update()
+        self.width = max(int(self._width * self.size), 1.0)
+        self.isDirty = True
 
     def update(self):
+        super(VectorPrim, self).update()
         self._points = []
         xfo = om2.MTransformationMatrix(self.transform)
         size = om2.MVector(self.size, self.size, self.size)
@@ -154,16 +167,16 @@ class VectorPrim(LinePrim):
             self._points.append(point)
 
 
-class TransformPrim(TransformBase):
+class TransformPrim(Primitive):
     X_COLOUR = (1.0, 0.0, 0.0)
     Y_COLOUR = (0.0, 1.0, 0.0)
     Z_COLOUR = (0.0, 0.0, 1.0)
 
     def __init__(self, transform=None, size=1.0):
-        self._xAxis = VectorPrim((1, 0, 0), color=TransformPrim.X_COLOUR)
-        self._yAxis = VectorPrim((0, 1, 0), color=TransformPrim.Y_COLOUR)
-        self._zAxis = VectorPrim((0, 0, 1), color=TransformPrim.Z_COLOUR)
-        self._transform = transform or om2.MTransformationMatrix()
+        super(TransformPrim, self).__init__(transform)
+        self._xAxis = VectorPrim((1, 0, 0), colour=TransformPrim.X_COLOUR)
+        self._yAxis = VectorPrim((0, 1, 0), colour=TransformPrim.Y_COLOUR)
+        self._zAxis = VectorPrim((0, 0, 1), colour=TransformPrim.Z_COLOUR)
         self.size = size
 
     @property
@@ -172,18 +185,60 @@ class TransformPrim(TransformBase):
 
     @size.setter
     def size(self, value):
-        for each in (self._xAxis, self._yAxis, self._zAxis):
-            each.size = value
+        self._size = value
+        self.isDirty = True
 
     def update(self):
+        super(TransformPrim, self).update()
         for each in (self._xAxis, self._yAxis, self._zAxis):
-            each.update()
-
-    def draw(self, view, renderer):
-        for each in (self._xAxis, self._yAxis, self._zAxis):
+            if each.size != self.size:
+                each.size = self.size
             if each.transform != self.transform:
                 each.transform = self.transform
+
+    def draw(self, view, renderer):
+        super(TransformPrim, self).draw(view, renderer)
+        for each in (self._xAxis, self._yAxis, self._zAxis):
             each.draw(view, renderer)
+
+
+class PointPrim(Primitive):
+
+    def __init__(self, position=None, colour=None, size=2):
+        super(PointPrim, self).__init__()
+
+        position = om2.MVector() if position is None else om2.MVector(position)
+        self.transform.setTranslation(position, om2.MSpace.kWorld)
+
+        self.colour = colour or (0.0, 0.0, 0.0)
+        self._size = size
+
+    @property
+    def size(self):
+        return self._size
+
+    @size.setter
+    def size(self, value):
+        self._size = max(int(value), 1)
+
+    def draw(self, view, renderer):
+        super(PointPrim, self).draw(view, renderer)
+
+        view.beginGL()
+        glFT = renderer.glFunctionTable()
+        glFT.glPushAttrib(omr.MGL_POINT_BIT)
+        glFT.glPointSize(self.size)
+        glFT.glBegin(omr.MGL_POINTS)
+
+        r, g, b = [float(x) for x in self.colour]
+        glFT.glColor3f(r, g, b)
+
+        point = self.transform.translation(om2.MSpace.kWorld)
+        glFT.glVertex3f(point.x, point.y, point.z)
+
+        glFT.glEnd()
+        glFT.glPopAttrib()
+        view.endGL()
 
 
 class SceneManager(object):
@@ -227,8 +282,8 @@ class SceneManager(object):
     def refresh(self):
         self.view.refresh(True, True)
 
-    def drawLine(self, points, color=None, width=2.0):
-        line = LinePrim(points, color, width)
+    def drawLine(self, points, colour=None, width=1):
+        line = LinePrim(points, colour, width)
         self.registerPrim(line)
         return line
 
@@ -249,6 +304,14 @@ class SceneManager(object):
         self.registerPrim(xfo)
         return xfo
 
+    def drawPoint(self, position=None, colour=None, size=2):
+        position = position or om2.MVector()
+        if not isinstance(position, om2.MVector):
+            position = om2.MVector(position)
+        point = PointPrim(position, colour, size)
+        self.registerPrim(point)
+        return point
+
     @staticmethod
     def getCurrentModelPanel():
         currentModelPanel = mc.getPanel(wf=True)
@@ -265,7 +328,9 @@ clear = _scn.clear
 refresh = _scn.refresh
 drawLine = _scn.drawLine
 drawTransform = _scn.drawTransform
+drawPoint = _scn.drawPoint
 erase = _scn.unregisterPrim
 
 
-__all__ = ['clear', 'refresh', 'drawLine', 'drawTransform', 'erase']
+__all__ = ['clear', 'refresh', 'erase',
+           'drawLine', 'drawTransform', 'drawPoint']
