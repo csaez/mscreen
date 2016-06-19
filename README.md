@@ -55,8 +55,7 @@ more examples.
 ## Contribuiting
 Please start a thread at [github's
 issues](https://github.com/csaez/mscreen/issues) to discuss features or changes
-in the code, the project it's early days and all code is likely to evolve quite
-a bit.
+in the code, it's early days and all code is likely to evolve quite a bit.
 
 Again, __please don't start any work before having a discussion__. I really
 appretiate your contributions and would love to merge them back, but
