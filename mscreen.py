@@ -34,6 +34,33 @@ except ImportError:
     mc = om = omui = omr = om2 = mock.MagicMock()
 
 
+COLOR_BLACK = (0.0, 0.0, 0.0)
+COLOR_GRAY = (0.5, 0.5, 0.5)
+COLOR_RED = (1.0, 0.0, 0.0)
+COLOR_GREEN = (0.0, 1.0, 0.0)
+COLOR_BLUE = (0.0, 0.0, 1.0)
+COLOR_YELLOW = (1.0, 1.0, 0.0)
+COLOR_MAGENTA = (1.0, 0.0, 1.0)
+COLOR_CYAN = (0.0, 1.0, 1.0)
+COLOR_WHITE = (1.0, 1.0, 1.0)
+
+COLOR_DARKGRAY = (0.25, 0.25, 0.25)
+COLOR_DARKRED = (0.75, 0.0, 0.0)
+COLOR_DARKGREEN = (0.0, 0.75, 0.0)
+COLOR_DARKBLUE = (0.0, 0.0, 0.75)
+COLOR_DARKYELLOW = (0.75, 0.75, 0.0)
+COLOR_DARKMAGENTA = (0.75, 0.0, 0.75)
+COLOR_DARKCYAN = (0.0, 0.75, 0.75)
+
+COLOR_LIGHTGRAY = (0.75, 0.75, 0.75)
+COLOR_LIGHTRED = (1.0, 0.25, 0.25)
+COLOR_LIGHTGREEN = (0.25, 1.0, 0.25)
+COLOR_LIGHTBLUE = (0.25, 0.25, 1.0)
+COLOR_LIGHTYELLOW = (1.0, 1.0, 0.25)
+COLOR_LIGHTMAGENTA = (1.0, 0.25, 1.0)
+COLOR_LIGHTCYAN = (0.25, 1.0, 1.0)
+
+
 class Primitive(object):
     def __init__(self, transform=None):
         logger.debug('Initializing:', self)
@@ -91,11 +118,11 @@ class Primitive(object):
 
 
 class LinePrim(Primitive):
-    def __init__(self, points=None, colour=None, width=2):
+    def __init__(self, points=None, color=None, width=2):
         super(LinePrim, self).__init__()
 
         self.width = width
-        self.colour = colour or [0.0, 0.0, 0.0]  # normalized rgb
+        self.color = color or COLOR_BLACK
         if points:
             self.points = points
 
@@ -126,7 +153,7 @@ class LinePrim(Primitive):
         glFT.glLineWidth(self.width)
         glFT.glBegin(omr.MGL_LINE_STRIP)
 
-        r, g, b = [float(x) for x in self.colour]
+        r, g, b = [float(x) for x in self.color]
         glFT.glColor3f(r, g, b)
 
         for point in self.points:
@@ -138,10 +165,10 @@ class LinePrim(Primitive):
 
 
 class VectorPrim(LinePrim):
-    def __init__(self, vector, size=1.0, colour=None):
+    def __init__(self, vector, size=1.0, color=None):
         self._size = size
         _points = ((0, 0, 0), [x * self.size for x in vector])
-        super(VectorPrim, self).__init__(_points, colour)
+        super(VectorPrim, self).__init__(_points, color)
         self._width = self.width
 
     @property
@@ -168,15 +195,15 @@ class VectorPrim(LinePrim):
 
 
 class TransformPrim(Primitive):
-    X_COLOUR = (1.0, 0.0, 0.0)
-    Y_COLOUR = (0.0, 1.0, 0.0)
-    Z_COLOUR = (0.0, 0.0, 1.0)
+    X_COLOR = COLOR_RED
+    Y_COLOR = COLOR_GREEN
+    Z_COLOR = COLOR_BLUE
 
     def __init__(self, transform=None, size=1.0):
         super(TransformPrim, self).__init__(transform)
-        self._xAxis = VectorPrim((1, 0, 0), colour=TransformPrim.X_COLOUR)
-        self._yAxis = VectorPrim((0, 1, 0), colour=TransformPrim.Y_COLOUR)
-        self._zAxis = VectorPrim((0, 0, 1), colour=TransformPrim.Z_COLOUR)
+        self._xAxis = VectorPrim((1, 0, 0), color=TransformPrim.X_COLOR)
+        self._yAxis = VectorPrim((0, 1, 0), color=TransformPrim.Y_COLOR)
+        self._zAxis = VectorPrim((0, 0, 1), color=TransformPrim.Z_COLOR)
         self.size = size
 
     @property
@@ -204,13 +231,13 @@ class TransformPrim(Primitive):
 
 class PointPrim(Primitive):
 
-    def __init__(self, position=None, colour=None, size=2):
+    def __init__(self, position=None, color=None, size=2):
         super(PointPrim, self).__init__()
 
         position = om2.MVector() if position is None else om2.MVector(position)
         self.transform.setTranslation(position, om2.MSpace.kWorld)
 
-        self.colour = colour or (0.0, 0.0, 0.0)
+        self.color = color or COLOR_BLACK
         self._size = size
 
     @property
@@ -230,7 +257,7 @@ class PointPrim(Primitive):
         glFT.glPointSize(self.size)
         glFT.glBegin(omr.MGL_POINTS)
 
-        r, g, b = [float(x) for x in self.colour]
+        r, g, b = [float(x) for x in self.color]
         glFT.glColor3f(r, g, b)
 
         point = self.transform.translation(om2.MSpace.kWorld)
@@ -282,33 +309,18 @@ class SceneManager(object):
     def refresh(self):
         self.view.refresh(True, True)
 
-    def drawLine(self, points, colour=None, width=1):
-        line = LinePrim(points, colour, width)
+    def drawLine(self, points, color=None, width=1):
+        line = LinePrim(points, color, width)
         self.registerPrim(line)
         return line
 
     def drawTransform(self, transform=None):
-        transform = transform or om2.MTransformationMatrix()
-        if not isinstance(transform, om2.MTransformationMatrix):
-            if isinstance(transform, (tuple, list)) and len(transform) >= 16:
-                matrix = om2.MMatrix(transform)
-                transform = om2.MTransformationMatrix(matrix)
-            else:
-                logger.error(
-                    'Invalid argument, transform is expected to be a sequence'
-                    'of 16 float values, four tuples of four float values'
-                    'each, a MMatrix or a MTransformationMatrix (om2), {}'
-                    'found instead.'.format(transform))
-                return
         xfo = TransformPrim(transform)
         self.registerPrim(xfo)
         return xfo
 
-    def drawPoint(self, position=None, colour=None, size=2):
-        position = position or om2.MVector()
-        if not isinstance(position, om2.MVector):
-            position = om2.MVector(position)
-        point = PointPrim(position, colour, size)
+    def drawPoint(self, position=None, color=None, size=2):
+        point = PointPrim(position, color, size)
         self.registerPrim(point)
         return point
 
@@ -322,6 +334,22 @@ class SceneManager(object):
                     currentModelPanel = each
         return currentModelPanel
 
+
+def _isIterable(obj):
+    try:
+        for _ in obj:
+            break
+        return True
+    except TypeError:
+        return False
+
+
+def linearInterpolate(t, posA, posB):
+    if _isIterable(posA):
+        posA = om2.MVector(posA)
+        posB = om2.MVector(posB)
+    vecAB = posB - posA
+    return posA + (vecAB * t)
 
 _scn = SceneManager()  # singleton
 clear = _scn.clear
