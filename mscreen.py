@@ -30,7 +30,7 @@ try:
     import maya.api.OpenMaya as om2
 except ImportError:
     import mock
-    logger.debug('maya not found')
+    logger.debug('Maya not found')
     mc = om = omui = omr = om2 = mock.MagicMock()
 
 
@@ -63,7 +63,7 @@ COLOR_LIGHTCYAN = (0.25, 1.0, 1.0)
 
 class Primitive(object):
     def __init__(self, transform=None):
-        logger.debug('Initializing:', self)
+        logger.debug('Initializing: ' + self)
         self._transform = om2.MTransformationMatrix() if transform is None \
             else om2.MTransformationMatrix(transform)
         self.isDirty = False
@@ -107,14 +107,14 @@ class Primitive(object):
 
     def update(self):
         '''To be extended by subclasses'''
-        logger.debug('Updating:', self)
+        logger.debug('Updating: ' + self)
         self.isDirty = False
 
     def draw(self, view, renderer):
         '''To be extended by subclasses'''
         if self.isDirty:
             self.update()
-        logger.debug('Drawing:', self)
+        logger.debug('Drawing: ' + self)
 
 
 class LinePrim(Primitive):
