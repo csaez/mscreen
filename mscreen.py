@@ -344,12 +344,30 @@ def _isIterable(obj):
         return False
 
 
-def linearInterpolate(t, posA, posB):
-    if _isIterable(posA):
-        posA = om2.MVector(posA)
-        posB = om2.MVector(posB)
-    vecAB = posB - posA
-    return posA + (vecAB * t)
+def linearInterpolate(t, p0, p1):
+    if _isIterable(p0):
+        p0 = om2.MVector(p0)
+        p1 = om2.MVector(p1)
+    return p0 + ((p1 - p0) * t)
+
+
+def bezierInterpolate(t, points):
+    if not _isIterable(points):
+        logger.error('Points is expected to be a secuence of points')
+        return
+    n = len(points) - 1
+    n_factorial = math.factorial(n)
+    for i, p in enumerate(points):
+        if not isinstance(p, om2.MVector):
+            p = om2.MVector(p)
+        k = n_factorial / float(math.factorial(i) * math.factorial(n - i))
+        b = (t**i) * (1 - t)**(n - i)
+        v = p * b * k
+        if i == 0:
+            rval = v
+        else:
+            rval += v
+    return rval
 
 _scn = SceneManager()  # singleton
 clear = _scn.clear
