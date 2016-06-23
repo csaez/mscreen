@@ -84,7 +84,6 @@ class Primitive(object):
 
     def move(self, x=0.0, y=0.0, z=0.0):
         x, y, z = [v for v in (x, y, z) if isinstance(v, int)]
-        print x, y, z
         if x == y == z == 0.0:
             return
         offset = om2.MVector(x, y, z)
@@ -139,6 +138,8 @@ class CurvePrim(Primitive):
 
     @property
     def points(self):
+        if self.isDirty:
+            self.update()
         return self._points
 
     @points.setter

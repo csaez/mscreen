@@ -10,42 +10,40 @@ implemented in python, do not expect _high performance_).
 The feature set is quite sketchy at the moment, but here's a quick demo:
 
 ```python
+import random
 import mscreen
 
 
-# Lets draw some squares...
 POINTS = ((2.0, 0.0, 2.0), (2.0, 0.0, -2.0), (-2.0, 0.0, -2.0),
           (-2.0, 0.0, 2.0), (2.0, 0.0, 2.0))
 
-mscreen.drawLine(POINTS, mscreen.COLOR_RED)
+# let's draw a square
+square = mscreen.drawCurve(POINTS, color=mscreen.COLOR_GRAY)
 
-sq1 = mscreen.drawLine(POINTS, mscreen.COLOR_GREEN)
-sq1.rotate(90, 0, 0)
+# we can move/rotate/scale around
+square.move(random.randint(-10, 10), random.randint(0, 10), random.randint(-10, 10))
+square.rotate(random.random()*180, random.random()*180, random.random()*180)
 
-sq2 = mscreen.drawLine(POINTS, mscreen.COLOR_BLUE)
-sq2.rotate(90, 90, 0)
+# let's draw points on each corner of the square
+for p in square.points:
+    mscreen.drawPoint(p, color=mscreen.COLOR_LIGHTGRAY, size=4)
 
+# mscreen primitives have a full transform (om2)
+xfo = mscreen.drawTransform(square.transform)
 
 # refresh the viewport, this is done explicitly to not slow down batch drawing
 mscreen.refresh()
-```
 
-```python
-# What about removing lines?
-mscreen.erase(sq1)  # it can be done selectively
+
+# What about removing stuff?
+mscreen.erase(xfo)  # it can be done selectively
 mscreen.refresh()
 
 mscreen.clear()  # or just clear the entire screen
 mscreen.refresh()
 ```
 
-> `mscreen` primitives fully support transformations, you can access its
-> `MTransformationMatrix` (OpenMaya 2.0) by calling `my_prim.transform`.
->
-> In addition you can offset the current transform via `move`/`rotate`/`scale`
-> convenience methods.
-
-Please check [`tests`](https://github.com/csaez/mscreen/tree/master/tests) for
+Please check the [tests](https://github.com/csaez/mscreen/tree/master/tests) for
 more examples.
 
 ## License
