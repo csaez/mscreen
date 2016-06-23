@@ -1,3 +1,4 @@
+import random
 import mscreen
 
 mscreen.clear()
@@ -6,14 +7,11 @@ mscreen.refresh()
 reload(mscreen)
 
 # Lets draw a few matrices...
-mscreen.drawTransform()
-
-xfo1 = mscreen.drawTransform()
-xfo1.size = 0.5
-xfo1.move(x=2)
-
-xfo2 = mscreen.drawTransform()
-xfo2.size = 2
-xfo2.move(x=5)
+for _ in range(10):
+    xfo = mscreen.drawTransform()
+    xfo.size = max(0.4, random.random() * 4)
+    xfo.move(random.randint(-5, 5),
+             random.randint(0, 10),
+             random.randint(-5, 5))
 
 mscreen.refresh()

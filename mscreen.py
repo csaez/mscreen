@@ -34,6 +34,7 @@ except ImportError:
     mc = om = omui = omr = om2 = mock.MagicMock()
 
 
+# color constants
 COLOR_BLACK = (0.0, 0.0, 0.0)
 COLOR_GRAY = (0.5, 0.5, 0.5)
 COLOR_RED = (1.0, 0.0, 0.0)
@@ -43,7 +44,6 @@ COLOR_YELLOW = (1.0, 1.0, 0.0)
 COLOR_MAGENTA = (1.0, 0.0, 1.0)
 COLOR_CYAN = (0.0, 1.0, 1.0)
 COLOR_WHITE = (1.0, 1.0, 1.0)
-
 COLOR_DARKGRAY = (0.25, 0.25, 0.25)
 COLOR_DARKRED = (0.75, 0.0, 0.0)
 COLOR_DARKGREEN = (0.0, 0.75, 0.0)
@@ -51,7 +51,6 @@ COLOR_DARKBLUE = (0.0, 0.0, 0.75)
 COLOR_DARKYELLOW = (0.75, 0.75, 0.0)
 COLOR_DARKMAGENTA = (0.75, 0.0, 0.75)
 COLOR_DARKCYAN = (0.0, 0.75, 0.75)
-
 COLOR_LIGHTGRAY = (0.75, 0.75, 0.75)
 COLOR_LIGHTRED = (1.0, 0.25, 0.25)
 COLOR_LIGHTGREEN = (0.25, 1.0, 0.25)
@@ -60,10 +59,14 @@ COLOR_LIGHTYELLOW = (1.0, 1.0, 0.25)
 COLOR_LIGHTMAGENTA = (1.0, 0.25, 1.0)
 COLOR_LIGHTCYAN = (0.25, 1.0, 1.0)
 
+# curve constants
+CURVE_LINEAR = 1
+CURVE_BEZIER = 3
+
 
 class Primitive(object):
     def __init__(self, transform=None):
-        logger.debug('Initializing: ' + self)
+        logger.debug('Initializing: {}'.format(self))
         self._transform = om2.MTransformationMatrix() if transform is None \
             else om2.MTransformationMatrix(transform)
         self.isDirty = False
@@ -80,6 +83,8 @@ class Primitive(object):
             self.isDirty = True
 
     def move(self, x=0.0, y=0.0, z=0.0):
+        x, y, z = [v for v in (x, y, z) if isinstance(v, int)]
+        print x, y, z
         if x == y == z == 0.0:
             return
         offset = om2.MVector(x, y, z)
@@ -107,22 +112,28 @@ class Primitive(object):
 
     def update(self):
         '''To be extended by subclasses'''
-        logger.debug('Updating: ' + self)
+        logger.debug('Updating: {}'.format(self))
         self.isDirty = False
 
     def draw(self, view, renderer):
         '''To be extended by subclasses'''
         if self.isDirty:
             self.update()
-        logger.debug('Drawing: ' + self)
+        logger.debug('Drawing: {}'.format(self))
 
 
-class LinePrim(Primitive):
-    def __init__(self, points=None, color=None, width=2):
-        super(LinePrim, self).__init__()
+class CurvePrim(Primitive):
+    def __init__(self, points=None, degree=None, color=None, width=2):
+        super(CurvePrim, self).__init__()
 
         self.width = width
         self.color = color or COLOR_BLACK
+        self.degree = degree or CURVE_LINEAR
+
+        self._points = list()  # control points
+        self._drawPoints = list()  # drawable points
+        self._prePoints = list()  # pre-transform points
+
         if points:
             self.points = points
 
@@ -132,11 +143,12 @@ class LinePrim(Primitive):
 
     @points.setter
     def points(self, value):
-        self._prePoints = list(value)  # copy
+        self._prePoints = list(value)
+        self._drawPoints = list(value)
         self.isDirty = True
 
     def update(self):
-        super(LinePrim, self).update()
+        super(CurvePrim, self).update()
         self._points = []
         matrix = self.transform.asMatrix()
         for i in xrange(len(self._prePoints)):
@@ -144,8 +156,20 @@ class LinePrim(Primitive):
             point *= matrix
             self._points.append(point)
 
+        if self.degree == CURVE_LINEAR:
+            self._drawPoints = [x for x in self._points]
+
+        elif self.degree == CURVE_BEZIER:
+            num_points = len(self._points)
+            segs = (num_points - 1) * 16
+            self._drawPoints = list()
+            for i in range(segs):
+                t = i/float(segs - 1)
+                p = bezierInterpolate(t, self._points)
+                self._drawPoints.append(p)
+
     def draw(self, view, renderer):
-        super(LinePrim, self).draw(view, renderer)
+        super(CurvePrim, self).draw(view, renderer)
 
         view.beginGL()
         glFT = renderer.glFunctionTable()
@@ -156,7 +180,7 @@ class LinePrim(Primitive):
         r, g, b = [float(x) for x in self.color]
         glFT.glColor3f(r, g, b)
 
-        for point in self.points:
+        for point in self._drawPoints:
             glFT.glVertex3f(point.x, point.y, point.z)
 
         glFT.glEnd()
@@ -164,11 +188,11 @@ class LinePrim(Primitive):
         view.endGL()
 
 
-class VectorPrim(LinePrim):
+class VectorPrim(CurvePrim):
     def __init__(self, vector, size=1.0, color=None):
         self._size = size
         _points = ((0, 0, 0), [x * self.size for x in vector])
-        super(VectorPrim, self).__init__(_points, color)
+        super(VectorPrim, self).__init__(_points, CURVE_LINEAR, color)
         self._width = self.width
 
     @property
@@ -183,15 +207,8 @@ class VectorPrim(LinePrim):
 
     def update(self):
         super(VectorPrim, self).update()
-        self._points = []
-        xfo = om2.MTransformationMatrix(self.transform)
-        size = om2.MVector(self.size, self.size, self.size)
-        xfo.scaleBy(size, om2.MSpace.kWorld)
-        matrix = xfo.asMatrix()
-        for i in xrange(len(self._prePoints)):
-            point = om2.MPoint(self._prePoints[i])
-            point *= matrix
-            self._points.append(point)
+        self._drawPoints[1] = linearInterpolate(
+            self.size, self._drawPoints[0], self._drawPoints[1])
 
 
 class TransformPrim(Primitive):
@@ -309,10 +326,10 @@ class SceneManager(object):
     def refresh(self):
         self.view.refresh(True, True)
 
-    def drawLine(self, points, color=None, width=2):
-        line = LinePrim(points, color, width)
-        self.registerPrim(line)
-        return line
+    def drawCurve(self, points, degree=None, color=None, width=2):
+        curve = CurvePrim(points, degree, color, width)
+        self.registerPrim(curve)
+        return curve
 
     def drawTransform(self, transform=None):
         xfo = TransformPrim(transform)
@@ -372,11 +389,7 @@ def bezierInterpolate(t, points):
 _scn = SceneManager()  # singleton
 clear = _scn.clear
 refresh = _scn.refresh
-drawLine = _scn.drawLine
+drawCurve = _scn.drawCurve
 drawTransform = _scn.drawTransform
 drawPoint = _scn.drawPoint
 erase = _scn.unregisterPrim
-
-
-__all__ = ['clear', 'refresh', 'erase',
-           'drawLine', 'drawTransform', 'drawPoint']
