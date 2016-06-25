@@ -24,14 +24,11 @@ logger = logging.getLogger(__name__)
 
 try:
     import maya.cmds as mc
-    import maya.OpenMaya as om
     import maya.OpenMayaUI as omui
     import maya.OpenMayaRender as omr
     import maya.api.OpenMaya as om2
 except ImportError:
-    import mock
     logger.debug('Maya not found')
-    mc = om = omui = omr = om2 = mock.MagicMock()
 
 
 # color constants
@@ -63,12 +60,18 @@ COLOR_LIGHTCYAN = (0.25, 1.0, 1.0)
 CURVE_LINEAR = 1
 CURVE_BEZIER = 3
 
+# callback constants
+CALLBACK_TRANSFORM = 0
+CALLBACK_DEFORM = 1
+
 
 class Primitive(object):
     def __init__(self, transform=None):
         logger.debug('Initializing: {}'.format(self))
         self._transform = om2.MTransformationMatrix() if transform is None \
             else om2.MTransformationMatrix(transform)
+        self._xfoCallbacks = list()
+        self._defCallbacks = list()
         self.isDirty = False
 
     @property
@@ -109,6 +112,54 @@ class Primitive(object):
         self.transform.scaleBy(offset, om2.MSpace.kWorld)
         self.isDirty = True
 
+    def registerCallback(self, function, type=CALLBACK_TRANSFORM):
+        index = -1
+        if type == CALLBACK_TRANSFORM:
+            index = len(self._xfoCallbacks)
+            self._xfoCallbacks.append(function)
+        elif type == CALLBACK_DEFORM:
+            index = len(self._defCallbacks)
+            self._defCallbacks.append(function)
+        return index
+
+    def unregisterCallback(self, item, type=CALLBACK_TRANSFORM):
+        if type == CALLBACK_TRANSFORM:
+            _callbacks = self._xfoCallbacks
+        elif type == CALLBACK_DEFORM:
+            _callbacks = self._defCallbacks
+        else:
+            return False
+        if isinstance(item, int):
+            item = _callbacks[item]
+        if item in _callbacks:
+            _callbacks.remove(item)
+
+    def parent(self, mobject):
+        if isinstance(mobject, basestring):
+            _sel = om2.MSelectionList()
+            _sel.add(mobject)
+            mobject = _sel.getDependNode(0)
+        elif isinstance(mobject, om2.MDagPath):
+            mobject = mobject.node()
+        self.unparent()  # remove previous callback
+        self.registerCallback(lambda x: self._parentCns(x, mobject))
+
+    def unparent(self):
+        for each in self._xfoCallbacks:
+            if isinstance(each, self._parentCns):
+                self.unregisterCallback(each)
+
+    @staticmethod
+    def _parentCns(primitive, mobject):
+        if mobject.isNull():
+            return False
+        fn = om2.MFnDagNode(mobject)
+        if len(fn.fullPathName()):
+            xfo = om2.MTransformationMatrix(fn.transformationMatrix())
+            primitive.transform = xfo
+            return True
+        return False
+
     def update(self):
         '''To be extended by subclasses'''
         logger.debug('Updating: {}'.format(self))
@@ -116,9 +167,25 @@ class Primitive(object):
 
     def draw(self, view, renderer):
         '''To be extended by subclasses'''
+        logger.debug('Drawing: {}'.format(self))
+
+        # run callbacks updating transform
+        toRemove = []
+        for each in self._xfoCallbacks:
+            if each(self):
+                self.isDirty = True
+            else:
+                toRemove.append(each)
+        for x in toRemove:
+            self.unregisterCallback(x)
+
+        # moving points according to its transform
         if self.isDirty:
             self.update()
-        logger.debug('Drawing: {}'.format(self))
+
+        # run callbacks deforming the primitive
+        for each in self._defCallbacks:
+            each(self)
 
 
 class CurvePrim(Primitive):
