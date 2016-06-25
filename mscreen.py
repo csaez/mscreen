@@ -291,38 +291,38 @@ class SceneManager(object):
     renderer = omr.MHardwareRenderer.theRenderer()
 
     def __init__(self):
-        self.primitives = []
-        self._callbacks = []
+        self.primitives = list()
+        self._callback = None
 
-    def clear(self):
-        for each in self._callbacks:
+    def __registerCallback(self):
+        if self._callback is not None:
+            return
+        self._callback = omui.MUiMessage.add3dViewPostRenderMsgCallback(
+            self.getCurrentModelPanel(), lambda *args: self.__draw())
+
+    def __unregisterCallback(self):
+        if self._callback is not None and len(self.primitives) == 0:
             try:
-                omui.MUiMessage.removeCallback(each)
+                omui.MUiMessage.removeCallback(self._callback)
             except Exception as err:
                 logger.debug(err)
+            self._callback = None
 
-        self.primitives = []
-        self._callbacks = []
+    def __draw(self):
+        for each in self.primitives:
+            each.draw(self.view, self.renderer)
+        self.__unregisterCallback()
+
+    def clear(self):
+        self.primitives = list()
 
     def registerPrim(self, primitive):
-        currentModelPanel = self.getCurrentModelPanel()
         self.primitives.append(primitive)
-        callback = omui.MUiMessage.add3dViewPostRenderMsgCallback(
-            currentModelPanel,
-            lambda *args: primitive.draw(self.view, self.renderer))
-        self._callbacks.append(callback)
+        self.__registerCallback()
 
     def unregisterPrim(self, primitive):
-        if primitive not in self.primitives:
-            return
-        i = self.primitives.index(primitive)
-        try:
-            callback = self._callbacks[i]
-            omui.MUiMessage.removeCallback(callback)
+        if primitive in self.primitives:
             self.primitives.remove(primitive)
-            self._callbacks.remove(callback)
-        except Exception as err:
-            logger.debug(err)
 
     def refresh(self):
         self.view.refresh(True, True)
