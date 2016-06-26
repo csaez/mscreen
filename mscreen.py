@@ -1,26 +1,33 @@
-# Copyright (R) 2016 Cesar Saez
-#
-# Permission is hereby granted, free of charge, to any person obtaining
-# a copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
-# OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+"""
+**mscreen** is a convenient python library allowing to easily draw OpenGL
+primitives on Autodesk's Maya viewport.
+
+The goal is to offer TDs/TAs an easy way to draw basic GL primitives as visual
+feedback during debuging and/or enhacing non-critical tools.
+
+The [source for mscreen](https://github.com/csaez/mscreen) is available on
+GitHub, and released under the MIT license.
+
+To install mscreen from source, simply
+
+    git clone https://github.com/csaez/mscreen.git
+    cd mscreen
+    python setup.py install
+
+Or drop [`mscreen.py`](https://github.com/csaez/mscreen/blob/master/mscreen.py)
+into a folder in your `PYTHONPATH`.
+
+For usage examples, take a look at the
+[`README`](https://github.com/csaez/mscreen/blob/master/README.md) and/or the
+[tests](https://github.com/csaez/mscreen/tree/master/tests) provided.
+"""
+
+# === Technical Documentation ===
 
 import math
 import logging
 logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 try:
     import maya.cmds as mc
@@ -31,7 +38,11 @@ except ImportError:
     logger.debug('Maya not found')
 
 
-# color constants
+# == Constants ==
+
+# Color constants are simple tuples containing 3 floats representing RGB
+# components (normalized). There's absolutely nothing special about these
+# constants, they are here just for convenience.
 COLOR_BLACK = (0.0, 0.0, 0.0)
 COLOR_GRAY = (0.5, 0.5, 0.5)
 COLOR_RED = (1.0, 0.0, 0.0)
@@ -56,16 +67,27 @@ COLOR_LIGHTYELLOW = (1.0, 1.0, 0.25)
 COLOR_LIGHTMAGENTA = (1.0, 0.25, 1.0)
 COLOR_LIGHTCYAN = (0.25, 1.0, 1.0)
 
-# curve constants
+# Curve constants represent the type of interpolation/degree of curves.
 CURVE_LINEAR = 1
 CURVE_BEZIER = 3
 
-# callback constants
+# Callback constants defining the order in which callbacks are called.
 CALLBACK_PREUPDATE = 0
 CALLBACK_POSTUPDATE = 1
 
 
+# == Primitive ==
+
 class Primitive(object):
+    """
+    `mscreen` define several primitives representing different things it
+    is possible to draw on the screen, these primitives are returned by the
+    higher level `drawSomething` methods later on (you shouldn't need to
+    subclass for simple use cases).
+
+    `Primitive` is intended as the base class defining a common interface and
+    some minimums in order to play nicely with the whole system.
+    """
     def __init__(self, transform=None):
         logger.debug('Initializing: {}'.format(self))
         self._transform = om2.MTransformationMatrix() if transform is None \
@@ -73,8 +95,13 @@ class Primitive(object):
         self._preCallbacks = list()
         self._postCallbacks = list()
         self._parent = None
+        # `isDirty` sets whether or not the primitive needs to be updated
+        # before drawing.
         self.isDirty = False
 
+    # `transform` holds an OpenMaya 2.0 `MTransformationMatrix` object
+    # representing the transformation matrix of the primitive. Feel free to
+    # modify or assing a new transform taking advantage of Maya API.
     @property
     def transform(self):
         return self._transform
@@ -86,6 +113,9 @@ class Primitive(object):
             self._transform = value
             self.isDirty = True
 
+    # `parent` holds a reference to a `MObject` driving the `transform` of the
+    # primitive (live connection). It's possible to unparent any given
+    # primitive by setting its `parent` to `None`.
     @property
     def parent(self):
         if self._parent is not None and \
@@ -104,6 +134,12 @@ class Primitive(object):
             mobject = mobject.node()
         self._parent = mobject
 
+    # === Transform methods ===
+
+    # Methods offseting primitive's `transform` by a given
+    # translation/rotation/scale (world space). These methods are here for
+    # convenience and should be equivalent to the ones provided by the Maya
+    # API.
     def move(self, x=0.0, y=0.0, z=0.0):
         x, y, z = [v for v in (x, y, z) if isinstance(v, int)]
         if x == y == z == 0.0:
@@ -131,6 +167,19 @@ class Primitive(object):
         self.transform.scaleBy(offset, om2.MSpace.kWorld)
         self.isDirty = True
 
+    # === Primitive callbacks ===
+
+    # `mscreen` main entry point for interactivity between maya nodes and
+    # OpenGL primitives is through callbacks at draw time (every time the
+    # viewport gets refreshed).
+
+    # It's possible to register/unregister any function as a callback
+    # pre/post update (defined by the callback constant), the only requirement
+    # is that said `function` should accept a fist argument corresponding to
+    # the primitive itself and should return `True` or `False` as a result of
+    # it computation (the return value is especially important in
+    # `CALLBACK_PREUPDATE` type of callbacks, as it triggers a cleanup
+    # procedure after its execution).
     def registerCallback(self, function, type=CALLBACK_PREUPDATE):
         index = -1
         if type == CALLBACK_PREUPDATE:
@@ -153,22 +202,41 @@ class Primitive(object):
         if item in _callbacks:
             _callbacks.remove(item)
 
+    # === To be extended by subclasses ===
+
     def update(self):
-        '''To be extended by subclasses'''
+        """
+        `update` is in charge of updating the data used in OpenGL calls during
+        drawing, there might be many use cases depending on the primitive, but
+        a common one would be updating the drawable points according to
+        primitive's `transform` (i.e. `CurvePrim`).
+
+        Notice how this method sets `isDirty` flag to False at the end, this
+        is VERY IMPORTANT, otherwise your primitive will be updated each time
+        the viewport gets refreshed (even when the data doesn't change).
+        """
         logger.debug('Updating: {}'.format(self))
         self.isDirty = False
 
     def draw(self, view, renderer):
-        '''To be extended by subclasses'''
+        """
+        `draw` is in charge of actually making the OpenGL calls to draw
+        whetever the primitive represent on the viewport.
+
+        The base class provides the minimum loop needed *before* doing any
+        drawing in order to be compatible with the callback system. That means
+        this method is intended to be *EXTENDED* (i.e. always call super
+        on subclasses... unless you know what you're doing).
+        """
         logger.debug('Drawing: {}'.format(self))
 
-        # update transform according to its parent
+        # Update transform according to `parent`.
         if self.parent:
             fn = om2.MFnTransform(self.parent)
             self.transform = fn.transformation()
             self.isDirty = True
 
-        # run pre-update callbacks
+        # Run pre-update callbacks (i.e. registered as `CALLBACK_PREUPDATE`).
         toRemove = []
         for each in self._preCallbacks:
             if each(self):
@@ -178,11 +246,11 @@ class Primitive(object):
         for x in toRemove:
             self.unregisterCallback(x)
 
-        # update
+        # Run `update` method if it's needed.
         if self.isDirty:
             self.update()
 
-        # run post-update callbacks
+        # Run post-update callbacks (i.e. registered as `CALLBACK_POSTUPDATE`).
         toRemove = []
         for each in self._postCallbacks:
             if not each(self):
@@ -191,12 +259,19 @@ class Primitive(object):
             self.unregisterCallback(x)
 
 
+# === Curve Primitive ===
 class CurvePrim(Primitive):
+    """
+    Primitive representing poly-curves (arbitrary number of points).
+    """
     def __init__(self, points=None, degree=None, color=None, width=2):
         super(CurvePrim, self).__init__()
 
+        # `width` of the curve, in pixels
         self.width = width
+        # `color` of the curve (tuple of floats representing RGB components)
         self.color = color or COLOR_BLACK
+        # `degree` represents the type of curve (i.e. linear or bezier)
         self.degree = degree or CURVE_LINEAR
 
         self._points = list()  # control points
@@ -206,6 +281,7 @@ class CurvePrim(Primitive):
         if points:
             self.points = points
 
+    # `points` are the control points of the curve.
     @property
     def points(self):
         if self.isDirty:
@@ -259,29 +335,35 @@ class CurvePrim(Primitive):
         view.endGL()
 
 
+# === Vector Primitive ===
 class VectorPrim(CurvePrim):
-    def __init__(self, vector, size=1.0, color=None):
-        self._size = size
-        _points = ((0, 0, 0), [x * self.size for x in vector])
+    """
+    `CurvePrim` subclass representing a vector.
+    """
+    def __init__(self, vector, length=1.0, color=None):
+        self._length = length
+        _points = ((0, 0, 0), [x * self.length for x in vector])
         super(VectorPrim, self).__init__(_points, CURVE_LINEAR, color)
         self._width = self.width
 
+    # `length` of the vector
     @property
-    def size(self):
-        return self._size
+    def length(self):
+        return self._length
 
-    @size.setter
-    def size(self, value):
-        self._size = value
-        self.width = max(int(self._width * self.size), 1.0)
+    @length.setter
+    def length(self, value):
+        self._length = value
+        self.width = max(int(self._width * self.length), 1.0)
         self.isDirty = True
 
     def update(self):
         super(VectorPrim, self).update()
         self._drawPoints[1] = linearInterpolate(
-            self.size, self._drawPoints[0], self._drawPoints[1])
+            self.length, self._drawPoints[0], self._drawPoints[1])
 
 
+# === Transformation Matrix Primitive ===
 class TransformPrim(Primitive):
     X_COLOR = COLOR_RED
     Y_COLOR = COLOR_GREEN
@@ -289,6 +371,9 @@ class TransformPrim(Primitive):
 
     def __init__(self, transform=None, size=1.0):
         super(TransformPrim, self).__init__(transform)
+        # Notice how 3 vectors can be used to compose the matrix (depending on
+        # your use case, composition can provide a more convenient/clean way to
+        # extend classes than inheritance).
         self._xAxis = VectorPrim((1, 0, 0), color=TransformPrim.X_COLOR)
         self._yAxis = VectorPrim((0, 1, 0), color=TransformPrim.Y_COLOR)
         self._zAxis = VectorPrim((0, 0, 1), color=TransformPrim.Z_COLOR)
@@ -306,8 +391,8 @@ class TransformPrim(Primitive):
     def update(self):
         super(TransformPrim, self).update()
         for each in (self._xAxis, self._yAxis, self._zAxis):
-            if each.size != self.size:
-                each.size = self.size
+            if each.length != self.size:
+                each.length = self.size
             if each.transform != self.transform:
                 each.transform = self.transform
 
@@ -317,6 +402,7 @@ class TransformPrim(Primitive):
             each.draw(view, renderer)
 
 
+# === Point Primitive ===
 class PointPrim(Primitive):
 
     def __init__(self, position=None, color=None, size=2):
@@ -324,10 +410,11 @@ class PointPrim(Primitive):
 
         position = om2.MVector() if position is None else om2.MVector(position)
         self.transform.setTranslation(position, om2.MSpace.kWorld)
-
+        # `color` as a tuple of floats representing RGB values (normalized).
         self.color = color or COLOR_BLACK
         self._size = size
 
+    # `size` in pixels.
     @property
     def size(self):
         return self._size
@@ -356,12 +443,22 @@ class PointPrim(Primitive):
         view.endGL()
 
 
+# === Scene Manager ===
 class SceneManager(object):
+    """
+    `SceneManager` is the entity interacting with Maya renderer and managing
+    `mscreen` primitives, this is the main entry point for most users of the
+    library.
+    """
     view = omui.M3dView.active3dView()
     renderer = omr.MHardwareRenderer.theRenderer()
 
     def __init__(self):
+        # `mscreen` works by registering ONE callback in a Maya 3dview, said
+        # callback calls to `__draw` where all the registered primitives are
+        # proccessed.
         self.primitives = list()
+        # `_callback` holds Maya's callback ID.
         self._callback = None
 
     def __registerCallback(self):
@@ -383,33 +480,48 @@ class SceneManager(object):
             each.draw(self.view, self.renderer)
         self.__unregisterCallback()
 
+    def refresh(self):
+        """
+        Force a refresh of the Maya viewport.
+        """
+        self.view.refresh(True, True)
+
     def clear(self):
+        """
+        Clear the screen by removing all registered primitives.
+        """
         self.primitives = list()
 
-    def registerPrim(self, primitive):
+    def registerPrimitive(self, primitive):
         self.primitives.append(primitive)
         self.__registerCallback()
 
-    def unregisterPrim(self, primitive):
+    def unregisterPrimitive(self, primitive):
         if primitive in self.primitives:
             self.primitives.remove(primitive)
 
-    def refresh(self):
-        self.view.refresh(True, True)
-
     def drawCurve(self, points, degree=None, color=None, width=2):
+        """
+        Convenience method creating and registering a `CurvePrim`.
+        """
         curve = CurvePrim(points, degree, color, width)
-        self.registerPrim(curve)
+        self.registerPrimitive(curve)
         return curve
 
     def drawTransform(self, transform=None):
+        """
+        Convenience method creating and registering a `TransformPrim`.
+        """
         xfo = TransformPrim(transform)
-        self.registerPrim(xfo)
+        self.registerPrimitive(xfo)
         return xfo
 
     def drawPoint(self, position=None, color=None, size=2):
+        """
+        Convenience method creating and registering a `PointPrim`.
+        """
         point = PointPrim(position, color, size)
-        self.registerPrim(point)
+        self.registerPrimitive(point)
         return point
 
     @staticmethod
@@ -423,6 +535,7 @@ class SceneManager(object):
         return currentModelPanel
 
 
+# === Utility functions ===
 def _isIterable(obj):
     try:
         for _ in obj:
@@ -433,6 +546,9 @@ def _isIterable(obj):
 
 
 def linearInterpolate(t, p0, p1):
+    """
+    Performs a linear interpolation between p0 and p1.
+    """
     if _isIterable(p0):
         p0 = om2.MVector(p0)
         p1 = om2.MVector(p1)
@@ -440,6 +556,9 @@ def linearInterpolate(t, p0, p1):
 
 
 def bezierInterpolate(t, points):
+    """
+    Performs a bezier interpolation (recursive).
+    """
     if not _isIterable(points):
         logger.error('Points is expected to be a secuence of points')
         return
@@ -457,10 +576,11 @@ def bezierInterpolate(t, points):
             rval += v
     return rval
 
+# === Accessors ===
 _scn = SceneManager()  # singleton
 clear = _scn.clear
 refresh = _scn.refresh
 drawCurve = _scn.drawCurve
 drawTransform = _scn.drawTransform
 drawPoint = _scn.drawPoint
-erase = _scn.unregisterPrim
+erase = _scn.unregisterPrimitive
