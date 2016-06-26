@@ -61,8 +61,8 @@ CURVE_LINEAR = 1
 CURVE_BEZIER = 3
 
 # callback constants
-CALLBACK_TRANSFORM = 0
-CALLBACK_DEFORM = 1
+CALLBACK_PREUPDATE = 0
+CALLBACK_POSTUPDATE = 1
 
 
 class Primitive(object):
@@ -70,8 +70,9 @@ class Primitive(object):
         logger.debug('Initializing: {}'.format(self))
         self._transform = om2.MTransformationMatrix() if transform is None \
             else om2.MTransformationMatrix(transform)
-        self._xfoCallbacks = list()
-        self._defCallbacks = list()
+        self._preCallbacks = list()
+        self._postCallbacks = list()
+        self._parent = None
         self.isDirty = False
 
     @property
@@ -84,6 +85,24 @@ class Primitive(object):
         if self._transform != value:
             self._transform = value
             self.isDirty = True
+
+    @property
+    def parent(self):
+        if self._parent is not None and \
+                (self._parent.isNull() or
+                 not len(om2.MFnDagNode(self._parent).fullPathName())):
+            self._parent = None
+        return self._parent
+
+    @parent.setter
+    def parent(self, mobject):
+        if isinstance(mobject, basestring):
+            _sel = om2.MSelectionList()
+            _sel.add(mobject)
+            mobject = _sel.getDependNode(0)
+        elif isinstance(mobject, om2.MDagPath):
+            mobject = mobject.node()
+        self._parent = mobject
 
     def move(self, x=0.0, y=0.0, z=0.0):
         x, y, z = [v for v in (x, y, z) if isinstance(v, int)]
@@ -112,53 +131,27 @@ class Primitive(object):
         self.transform.scaleBy(offset, om2.MSpace.kWorld)
         self.isDirty = True
 
-    def registerCallback(self, function, type=CALLBACK_TRANSFORM):
+    def registerCallback(self, function, type=CALLBACK_PREUPDATE):
         index = -1
-        if type == CALLBACK_TRANSFORM:
-            index = len(self._xfoCallbacks)
-            self._xfoCallbacks.append(function)
-        elif type == CALLBACK_DEFORM:
-            index = len(self._defCallbacks)
-            self._defCallbacks.append(function)
+        if type == CALLBACK_PREUPDATE:
+            index = len(self._preCallbacks)
+            self._preCallbacks.append(function)
+        elif type == CALLBACK_POSTUPDATE:
+            index = len(self._postCallbacks)
+            self._postCallbacks.append(function)
         return index
 
-    def unregisterCallback(self, item, type=CALLBACK_TRANSFORM):
-        if type == CALLBACK_TRANSFORM:
-            _callbacks = self._xfoCallbacks
-        elif type == CALLBACK_DEFORM:
-            _callbacks = self._defCallbacks
+    def unregisterCallback(self, item, type=CALLBACK_PREUPDATE):
+        if type == CALLBACK_PREUPDATE:
+            _callbacks = self._preCallbacks
+        elif type == CALLBACK_POSTUPDATE:
+            _callbacks = self._postCallbacks
         else:
             return False
         if isinstance(item, int):
             item = _callbacks[item]
         if item in _callbacks:
             _callbacks.remove(item)
-
-    def parent(self, mobject):
-        if isinstance(mobject, basestring):
-            _sel = om2.MSelectionList()
-            _sel.add(mobject)
-            mobject = _sel.getDependNode(0)
-        elif isinstance(mobject, om2.MDagPath):
-            mobject = mobject.node()
-        self.unparent()  # remove previous callback
-        self.registerCallback(lambda x: self._parentCns(x, mobject))
-
-    def unparent(self):
-        for each in self._xfoCallbacks:
-            if isinstance(each, self._parentCns):
-                self.unregisterCallback(each)
-
-    @staticmethod
-    def _parentCns(primitive, mobject):
-        if mobject.isNull():
-            return False
-        fn = om2.MFnDagNode(mobject)
-        if len(fn.fullPathName()):
-            xfo = om2.MTransformationMatrix(fn.transformationMatrix())
-            primitive.transform = xfo
-            return True
-        return False
 
     def update(self):
         '''To be extended by subclasses'''
@@ -169,9 +162,15 @@ class Primitive(object):
         '''To be extended by subclasses'''
         logger.debug('Drawing: {}'.format(self))
 
-        # run callbacks updating transform
+        # update transform according to its parent
+        if self.parent:
+            fn = om2.MFnTransform(self.parent)
+            self.transform = fn.transformation()
+            self.isDirty = True
+
+        # run pre-update callbacks
         toRemove = []
-        for each in self._xfoCallbacks:
+        for each in self._preCallbacks:
             if each(self):
                 self.isDirty = True
             else:
@@ -179,13 +178,17 @@ class Primitive(object):
         for x in toRemove:
             self.unregisterCallback(x)
 
-        # moving points according to its transform
+        # update
         if self.isDirty:
             self.update()
 
-        # run callbacks deforming the primitive
-        for each in self._defCallbacks:
-            each(self)
+        # run post-update callbacks
+        toRemove = []
+        for each in self._postCallbacks:
+            if not each(self):
+                toRemove.append(each)
+        for x in toRemove:
+            self.unregisterCallback(x)
 
 
 class CurvePrim(Primitive):
