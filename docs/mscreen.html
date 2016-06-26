@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8">
+  <title>mscreen.py</title>
+  <link rel="stylesheet" href="pycco.css">
+</head>
+<body>
+<div id='container'>
+  <div id="background"></div>
+  <div class='section'>
+    <div class='docs'><h1>mscreen.py</h1></div>
+  </div>
+  <div class='clearall'>
+  <div class='section' id='section-0'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-0'>#</a>
+      </div>
+      <p><strong>mscreen</strong> is a convenient python library allowing to easily draw OpenGL
+primitives on Autodesk's Maya viewport.</p>
+<p>The goal is to offer TDs/TAs an easy way to draw basic GL primitives as visual
+feedback during debuging and/or enhacing non-critical tools.</p>
+<p>The <a href="https://github.com/csaez/mscreen">source for mscreen</a> is available on
+GitHub, and released under the MIT license.</p>
+<p>To install mscreen from source, simply</p>
+<pre><code>git clone https://github.com/csaez/mscreen.git
+cd mscreen
+python setup.py install
+</code></pre>
+<p>Or drop <a href="https://github.com/csaez/mscreen/blob/master/mscreen.py"><code>mscreen.py</code></a>
+into a folder in your <code>PYTHONPATH</code>.</p>
+<p>For usage examples, take a look at the
+<a href="https://github.com/csaez/mscreen/blob/master/README.md"><code>README</code></a> and/or the
+<a href="https://github.com/csaez/mscreen/tree/master/tests">tests</a> provided.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span></span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-1'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-1'>#</a>
+      </div>
+      <h3><span id="technical-documentation" href="technical-documentation"> Technical Documentation </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">NullHandler</span><span class="p">())</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">maya.cmds</span> <span class="kn">as</span> <span class="nn">mc</span>
+    <span class="kn">import</span> <span class="nn">maya.OpenMayaUI</span> <span class="kn">as</span> <span class="nn">omui</span>
+    <span class="kn">import</span> <span class="nn">maya.OpenMayaRender</span> <span class="kn">as</span> <span class="nn">omr</span>
+    <span class="kn">import</span> <span class="nn">maya.api.OpenMaya</span> <span class="kn">as</span> <span class="nn">om2</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Maya not found&#39;</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-2'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-2'>#</a>
+      </div>
+      <h2><span id="constants" href="constants"> Constants </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-3'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-3'>#</a>
+      </div>
+      <p>Color constants are simple tuples containing 3 floats representing RGB
+components (normalized). There's absolutely nothing special about these
+constants, they are here just for convenience.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">COLOR_BLACK</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_GRAY</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+<span class="n">COLOR_RED</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_GREEN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_BLUE</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_YELLOW</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_MAGENTA</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_CYAN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_WHITE</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_DARKGRAY</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">COLOR_DARKRED</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_DARKGREEN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_DARKBLUE</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+<span class="n">COLOR_DARKYELLOW</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="n">COLOR_DARKMAGENTA</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+<span class="n">COLOR_DARKCYAN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTGRAY</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTRED</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTGREEN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTBLUE</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTYELLOW</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTMAGENTA</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="n">COLOR_LIGHTCYAN</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-4'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-4'>#</a>
+      </div>
+      <p>Curve constants represent the type of interpolation/degree of curves.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">CURVE_LINEAR</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="n">CURVE_BEZIER</span> <span class="o">=</span> <span class="mi">3</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-5'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-5'>#</a>
+      </div>
+      <p>Callback constants defining the order in which callbacks are called.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">CALLBACK_PREUPDATE</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">CALLBACK_POSTUPDATE</span> <span class="o">=</span> <span class="mi">1</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-6'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-6'>#</a>
+      </div>
+      <h2><span id="primitive" href="primitive"> Primitive </span></h2>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-7'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-7'>#</a>
+      </div>
+      <p><code>mscreen</code> define several primitives representing different things it
+is possible to draw on the screen, these primitives are returned by the
+higher level <code>drawSomething</code> methods later on (you shouldn't need to
+subclass for simple use cases).</p>
+<p><code>Primitive</code> is intended as the base class defining a common interface and
+some minimums in order to play nicely with the whole system.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">Primitive</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-8'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-8'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Initializing: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MTransformationMatrix</span><span class="p">()</span> <span class="k">if</span> <span class="n">transform</span> <span class="ow">is</span> <span class="bp">None</span> \
+            <span class="k">else</span> <span class="n">om2</span><span class="o">.</span><span class="n">MTransformationMatrix</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_preCallbacks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_postCallbacks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="bp">None</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-9'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-9'>#</a>
+      </div>
+      <p><code>isDirty</code> sets whether or not the primitive needs to be updated
+before drawing.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">False</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-10'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-10'>#</a>
+      </div>
+      <p><code>transform</code> holds an OpenMaya 2.0 <code>MTransformationMatrix</code> object
+representing the transformation matrix of the primitive. Feel free to
+modify or assing a new transform taking advantage of Maya API.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span>
+
+    <span class="nd">@transform.setter</span>
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MTransformationMatrix</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>  <span class="c1"># copy</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">!=</span> <span class="n">value</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-11'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-11'>#</a>
+      </div>
+      <p><code>parent</code> holds a reference to a <code>MObject</code> driving the <code>transform</code> of the
+primitive (live connection). It's possible to unparent any given
+primitive by setting its <code>parent</code> to <code>None</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> \
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="o">.</span><span class="n">isNull</span><span class="p">()</span> <span class="ow">or</span>
+                 <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">om2</span><span class="o">.</span><span class="n">MFnDagNode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parent</span><span class="p">)</span><span class="o">.</span><span class="n">fullPathName</span><span class="p">())):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
+
+    <span class="nd">@parent.setter</span>
+    <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mobject</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mobject</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="n">_sel</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MSelectionList</span><span class="p">()</span>
+            <span class="n">_sel</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">mobject</span><span class="p">)</span>
+            <span class="n">mobject</span> <span class="o">=</span> <span class="n">_sel</span><span class="o">.</span><span class="n">getDependNode</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mobject</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MDagPath</span><span class="p">):</span>
+            <span class="n">mobject</span> <span class="o">=</span> <span class="n">mobject</span><span class="o">.</span><span class="n">node</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="n">mobject</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-12'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-12'>#</a>
+      </div>
+      <h3><span id="transform-methods" href="transform-methods"> Transform methods </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-13'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-13'>#</a>
+      </div>
+      <p>Methods offseting primitive's <code>transform</code> by a given
+translation/rotation/scale (world space). These methods are here for
+convenience and should be equivalent to the ones provided by the Maya
+API.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="o">==</span> <span class="n">z</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">translateBy</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-14'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-14'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">rotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">asDegrees</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="o">==</span> <span class="n">z</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">asDegrees</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">euler</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MTransformationMatrix</span><span class="o">.</span><span class="n">kXYZ</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">rotateByComponents</span><span class="p">(</span><span class="n">euler</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">,</span>
+                                          <span class="n">asQuaternion</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-15'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-15'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="o">==</span> <span class="n">z</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">scaleBy</span><span class="p">(</span><span class="n">offset</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-16'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-16'>#</a>
+      </div>
+      <h3><span id="primitive-callbacks" href="primitive-callbacks"> Primitive callbacks </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-17'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-17'>#</a>
+      </div>
+      <p><code>mscreen</code> main entry point for interactivity between maya nodes and
+OpenGL primitives is through callbacks at draw time (every time the
+viewport gets refreshed).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-18'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-18'>#</a>
+      </div>
+      <p>It's possible to register/unregister any function as a callback
+pre/post update (defined by the callback constant), the only requirement
+is that said <code>function</code> should accept a fist argument corresponding to
+the primitive itself and should return <code>True</code> or <code>False</code> as a result of
+it computation (the return value is especially important in
+<code>CALLBACK_PREUPDATE</code> type of callbacks, as it triggers a cleanup
+procedure after its execution).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">function</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">CALLBACK_PREUPDATE</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="n">CALLBACK_PREUPDATE</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_preCallbacks</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_preCallbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="n">CALLBACK_POSTUPDATE</span><span class="p">:</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_postCallbacks</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_postCallbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">function</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">index</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-19'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-19'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">CALLBACK_PREUPDATE</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">type</span> <span class="o">==</span> <span class="n">CALLBACK_PREUPDATE</span><span class="p">:</span>
+            <span class="n">_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preCallbacks</span>
+        <span class="k">elif</span> <span class="nb">type</span> <span class="o">==</span> <span class="n">CALLBACK_POSTUPDATE</span><span class="p">:</span>
+            <span class="n">_callbacks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_postCallbacks</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="n">_callbacks</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">_callbacks</span><span class="p">:</span>
+            <span class="n">_callbacks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">item</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-20'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-20'>#</a>
+      </div>
+      <h3><span id="to-be-extended-by-subclasses" href="to-be-extended-by-subclasses"> To be extended by subclasses </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-21'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-21'>#</a>
+      </div>
+      <p><code>update</code> is in charge of updating the data used in OpenGL calls during
+drawing, there might be many use cases depending on the primitive, but
+a common one would be updating the drawable points according to
+primitive's <code>transform</code> (i.e. <code>CurvePrim</code>).</p>
+<p>Notice how this method sets <code>isDirty</code> flag to False at the end, this
+is VERY IMPORTANT, otherwise your primitive will be updated each time
+the viewport gets refreshed (even when the data doesn't change).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-22'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-22'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Updating: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">False</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-23'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-23'>#</a>
+      </div>
+      <p><code>draw</code> is in charge of actually making the OpenGL calls to draw
+whetever the primitive represent on the viewport.</p>
+<p>The base class provides the minimum loop needed <em>before</em> doing any
+drawing in order to be compatible with the callback system. That means
+this method is intended to be <em>EXTENDED</em> (i.e. always call super
+on subclasses... unless you know what you're doing).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-24'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-24'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Drawing: {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-25'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-25'>#</a>
+      </div>
+      <p>Update transform according to <code>parent</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+            <span class="n">fn</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MFnTransform</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">fn</span><span class="o">.</span><span class="n">transformation</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-26'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-26'>#</a>
+      </div>
+      <p>Run pre-update callbacks (i.e. registered as <code>CALLBACK_PREUPDATE</code>).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">toRemove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preCallbacks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">each</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">toRemove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">each</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">toRemove</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unregisterCallback</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-27'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-27'>#</a>
+      </div>
+      <p>Run <code>update</code> method if it's needed.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-28'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-28'>#</a>
+      </div>
+      <p>Run post-update callbacks (i.e. registered as <code>CALLBACK_POSTUPDATE</code>).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">toRemove</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_postCallbacks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">each</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="n">toRemove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">each</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">toRemove</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unregisterCallback</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-29'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-29'>#</a>
+      </div>
+      <h3><span id="curve-primitive" href="curve-primitive"> Curve Primitive </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">CurvePrim</span><span class="p">(</span><span class="n">Primitive</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-30'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-30'>#</a>
+      </div>
+      <p>Primitive representing poly-curves (arbitrary number of points).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CurvePrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-31'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-31'>#</a>
+      </div>
+      <p><code>width</code> of the curve, in pixels</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="n">width</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-32'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-32'>#</a>
+      </div>
+      <p><code>color</code> of the curve (tuple of floats representing RGB components)</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span> <span class="ow">or</span> <span class="n">COLOR_BLACK</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-33'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-33'>#</a>
+      </div>
+      <p><code>degree</code> represents the type of curve (i.e. linear or bezier)</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">=</span> <span class="n">degree</span> <span class="ow">or</span> <span class="n">CURVE_LINEAR</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>  <span class="c1"># control points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>  <span class="c1"># drawable points</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prePoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>  <span class="c1"># pre-transform points</span>
+
+        <span class="k">if</span> <span class="n">points</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-34'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-34'>#</a>
+      </div>
+      <p><code>points</code> are the control points of the curve.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span>
+
+    <span class="nd">@points.setter</span>
+    <span class="k">def</span> <span class="nf">points</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_prePoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CurvePrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">asMatrix</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prePoints</span><span class="p">)):</span>
+            <span class="n">point</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MPoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_prePoints</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">point</span> <span class="o">*=</span> <span class="n">matrix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="n">CURVE_LINEAR</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">degree</span> <span class="o">==</span> <span class="n">CURVE_BEZIER</span><span class="p">:</span>
+            <span class="n">num_points</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="p">)</span>
+            <span class="n">segs</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_points</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">16</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">segs</span><span class="p">):</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">i</span><span class="o">/</span><span class="nb">float</span><span class="p">(</span><span class="n">segs</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">p</span> <span class="o">=</span> <span class="n">bezierInterpolate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">CurvePrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+
+        <span class="n">view</span><span class="o">.</span><span class="n">beginGL</span><span class="p">()</span>
+        <span class="n">glFT</span> <span class="o">=</span> <span class="n">renderer</span><span class="o">.</span><span class="n">glFunctionTable</span><span class="p">()</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glPushAttrib</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_LINE_BIT</span><span class="p">)</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glLineWidth</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">)</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glBegin</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_LINE_STRIP</span><span class="p">)</span>
+
+        <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">]</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">:</span>
+            <span class="n">glFT</span><span class="o">.</span><span class="n">glVertex3f</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glEnd</span><span class="p">()</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glPopAttrib</span><span class="p">()</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">endGL</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-35'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-35'>#</a>
+      </div>
+      <h3><span id="vector-primitive" href="vector-primitive"> Vector Primitive </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">VectorPrim</span><span class="p">(</span><span class="n">CurvePrim</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-36'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-36'>#</a>
+      </div>
+      <p><code>CurvePrim</code> subclass representing a vector.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">=</span> <span class="n">length</span>
+        <span class="n">_points</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">vector</span><span class="p">])</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">_points</span><span class="p">,</span> <span class="n">CURVE_LINEAR</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-37'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-37'>#</a>
+      </div>
+      <p><code>length</code> of the vector</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span>
+
+    <span class="nd">@length.setter</span>
+    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">linearInterpolate</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-38'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-38'>#</a>
+      </div>
+      <h3><span id="transformation-matrix-primitive" href="transformation-matrix-primitive"> Transformation Matrix Primitive </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">TransformPrim</span><span class="p">(</span><span class="n">Primitive</span><span class="p">):</span>
+    <span class="n">X_COLOR</span> <span class="o">=</span> <span class="n">COLOR_RED</span>
+    <span class="n">Y_COLOR</span> <span class="o">=</span> <span class="n">COLOR_GREEN</span>
+    <span class="n">Z_COLOR</span> <span class="o">=</span> <span class="n">COLOR_BLUE</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-39'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-39'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TransformPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-40'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-40'>#</a>
+      </div>
+      <p>Notice how 3 vectors can be used to compose the matrix (depending on
+your use case, composition can provide a more convenient/clean way to
+extend classes than inheritance).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">_xAxis</span> <span class="o">=</span> <span class="n">VectorPrim</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">TransformPrim</span><span class="o">.</span><span class="n">X_COLOR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_yAxis</span> <span class="o">=</span> <span class="n">VectorPrim</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">TransformPrim</span><span class="o">.</span><span class="n">Y_COLOR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zAxis</span> <span class="o">=</span> <span class="n">VectorPrim</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">color</span><span class="o">=</span><span class="n">TransformPrim</span><span class="o">.</span><span class="n">Z_COLOR</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-41'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-41'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+
+    <span class="nd">@size.setter</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TransformPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zAxis</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">each</span><span class="o">.</span><span class="n">length</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="n">each</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+            <span class="k">if</span> <span class="n">each</span><span class="o">.</span><span class="n">transform</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">:</span>
+                <span class="n">each</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+
+    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">TransformPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zAxis</span><span class="p">):</span>
+            <span class="n">each</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-42'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-42'>#</a>
+      </div>
+      <h3><span id="point-primitive" href="point-primitive"> Point Primitive </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">PointPrim</span><span class="p">(</span><span class="n">Primitive</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-43'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-43'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PointPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+        <span class="n">position</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">()</span> <span class="k">if</span> <span class="n">position</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">position</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">setTranslation</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-44'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-44'>#</a>
+      </div>
+      <p><code>color</code> as a tuple of floats representing RGB values (normalized).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span> <span class="ow">or</span> <span class="n">COLOR_BLACK</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">size</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-45'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-45'>#</a>
+      </div>
+      <p><code>size</code> in pixels.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+
+    <span class="nd">@size.setter</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PointPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+
+        <span class="n">view</span><span class="o">.</span><span class="n">beginGL</span><span class="p">()</span>
+        <span class="n">glFT</span> <span class="o">=</span> <span class="n">renderer</span><span class="o">.</span><span class="n">glFunctionTable</span><span class="p">()</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glPushAttrib</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_POINT_BIT</span><span class="p">)</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glPointSize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glBegin</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_POINTS</span><span class="p">)</span>
+
+        <span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">]</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+
+        <span class="n">point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">translation</span><span class="p">(</span><span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glVertex3f</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glEnd</span><span class="p">()</span>
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glPopAttrib</span><span class="p">()</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">endGL</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-46'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-46'>#</a>
+      </div>
+      <h3><span id="scene-manager" href="scene-manager"> Scene Manager </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">SceneManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-47'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-47'>#</a>
+      </div>
+      <p><code>SceneManager</code> is the entity interacting with Maya renderer and managing
+<code>mscreen</code> primitives, this is the main entry point for most users of the
+library.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="n">view</span> <span class="o">=</span> <span class="n">omui</span><span class="o">.</span><span class="n">M3dView</span><span class="o">.</span><span class="n">active3dView</span><span class="p">()</span>
+    <span class="n">renderer</span> <span class="o">=</span> <span class="n">omr</span><span class="o">.</span><span class="n">MHardwareRenderer</span><span class="o">.</span><span class="n">theRenderer</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-48'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-48'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-49'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-49'>#</a>
+      </div>
+      <p><code>mscreen</code> works by registering ONE callback in a Maya 3dview, said
+callback calls to <code>__draw</code> where all the registered primitives are
+proccessed.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-50'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-50'>#</a>
+      </div>
+      <p><code>_callback</code> holds Maya's callback ID.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="bp">None</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-51'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-51'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="n">omui</span><span class="o">.</span><span class="n">MUiMessage</span><span class="o">.</span><span class="n">add3dViewPostRenderMsgCallback</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">getCurrentModelPanel</span><span class="p">(),</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__draw</span><span class="p">())</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-52'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-52'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__unregisterCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">omui</span><span class="o">.</span><span class="n">MUiMessage</span><span class="o">.</span><span class="n">removeCallback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_callback</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_callback</span> <span class="o">=</span> <span class="bp">None</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-53'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-53'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__draw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
+            <span class="n">each</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__unregisterCallback</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-54'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-54'>#</a>
+      </div>
+      <p>Force a refresh of the Maya viewport.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-55'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-55'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-56'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-56'>#</a>
+      </div>
+      <p>Clear the screen by removing all registered primitives.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-57'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-57'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-58'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-58'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__registerCallback</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-59'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-59'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">primitive</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-60'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-60'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>CurvePrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-61'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-61'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">curve</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">curve</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-62'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-62'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>TransformPrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-63'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-63'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">xfo</span> <span class="o">=</span> <span class="n">TransformPrim</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">xfo</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xfo</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-64'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-64'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>PointPrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-65'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-65'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">point</span> <span class="o">=</span> <span class="n">PointPrim</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">point</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-66'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-66'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">getCurrentModelPanel</span><span class="p">():</span>
+        <span class="n">currentModelPanel</span> <span class="o">=</span> <span class="n">mc</span><span class="o">.</span><span class="n">getPanel</span><span class="p">(</span><span class="n">wf</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;modelPanel&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">currentModelPanel</span><span class="p">:</span>
+            <span class="n">currentModelPanel</span> <span class="o">=</span> <span class="n">mc</span><span class="o">.</span><span class="n">getPanel</span><span class="p">(</span><span class="n">vis</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">currentModelPanel</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;modelPanel&quot;</span> <span class="ow">in</span> <span class="n">each</span><span class="p">:</span>
+                    <span class="n">currentModelPanel</span> <span class="o">=</span> <span class="n">each</span>
+        <span class="k">return</span> <span class="n">currentModelPanel</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-67'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-67'>#</a>
+      </div>
+      <h3><span id="utility-functions" href="utility-functions"> Utility functions </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">_isIterable</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">False</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-68'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-68'>#</a>
+      </div>
+      <p>Performs a linear interpolation between p0 and p1.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">linearInterpolate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-69'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-69'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">if</span> <span class="n">_isIterable</span><span class="p">(</span><span class="n">p0</span><span class="p">):</span>
+        <span class="n">p0</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">p0</span><span class="p">)</span>
+        <span class="n">p1</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p0</span> <span class="o">+</span> <span class="p">((</span><span class="n">p1</span> <span class="o">-</span> <span class="n">p0</span><span class="p">)</span> <span class="o">*</span> <span class="n">t</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-70'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-70'>#</a>
+      </div>
+      <p>Performs a bezier interpolation (recursive).</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="k">def</span> <span class="nf">bezierInterpolate</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">points</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-71'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-71'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">if</span> <span class="ow">not</span> <span class="n">_isIterable</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Points is expected to be a secuence of points&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">n_factorial</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">points</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">):</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">n_factorial</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span><span class="p">))</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">**</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">p</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">k</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">rval</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rval</span> <span class="o">+=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">rval</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-72'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-72'>#</a>
+      </div>
+      <h3><span id="accessors" href="accessors"> Accessors </span></h3>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre><span class="n">_scn</span> <span class="o">=</span> <span class="n">SceneManager</span><span class="p">()</span>  <span class="c1"># singleton</span>
+<span class="n">clear</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">clear</span>
+<span class="n">refresh</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">refresh</span>
+<span class="n">drawCurve</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">drawCurve</span>
+<span class="n">drawTransform</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">drawTransform</span>
+<span class="n">drawPoint</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">drawPoint</span>
+<span class="n">erase</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">unregisterPrimitive</span>
+
+</pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+</div>
+</body>
