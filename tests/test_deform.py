@@ -2,8 +2,7 @@ import random
 import maya.api.OpenMaya as om2
 
 import mscreen
-mscreen.clear()
-reload(mscreen)
+reload(mscreen)  # debugging purposes
 
 
 def deformById(curve, mobjects):

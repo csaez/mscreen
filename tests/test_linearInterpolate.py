@@ -1,10 +1,7 @@
 import random
 import mscreen
+reload(mscreen)  # debugging purposes
 
-mscreen.clear()
-mscreen.refresh()
-
-reload(mscreen)
 
 POS_A = (random.randint(-10, 0), random.randint(0, 10), random.randint(-5, 5))
 POS_B = (random.randint(0, 10), random.randint(0, 10), random.randint(-5, 5))

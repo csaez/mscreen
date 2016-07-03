@@ -1,8 +1,7 @@
 import maya.cmds as cmds
-import mscreen
 
-mscreen.clear()
-reload(mscreen)
+import mscreen
+reload(mscreen)  # debugging purposes
 
 
 # create a curve

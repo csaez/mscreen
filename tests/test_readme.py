@@ -1,8 +1,6 @@
 import random
 import mscreen
-
-mscreen.clear()
-reload(mscreen)
+reload(mscreen)  # debugging purposes
 
 # let's draw a square
 POINTS = ((2.0, 0.0, 2.0), (2.0, 0.0, -2.0), (-2.0, 0.0, -2.0),

@@ -1,10 +1,7 @@
 import random
 import mscreen
+reload(mscreen)  # debugging purposes
 
-mscreen.clear()
-mscreen.refresh()
-
-reload(mscreen)
 
 # Lets draw a few matrices...
 for _ in range(10):
