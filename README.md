@@ -49,11 +49,7 @@ more examples.
 
 
 ## Contribuiting
-Please start a thread at [github's
-issues](https://github.com/csaez/mscreen/issues) to discuss features or changes
-in the code, it's early days and all code is likely to evolve quite a bit.
-
-Again, __please don't start any work before having a discussion__. I really
-appretiate your contributions and would love to merge them back, but
-pull requests are not likely to be accepted until reach
-[v1.0.0](https://github.com/csaez/mscreen/milestones/v1.0.0).
+- [Check for open issues](https://github.com/csaez/mscreen/issues) or open a fresh issue to start a discussion around a feature idea or a bug.
+- Fork the [mscreen repository on Github](https://github.com/csaez/mscreen) to start making your changes (make sure to isolate your changes in a local branch).
+- Write a test which shows that the bug was fixed or that the feature works as expected.
+- Send a pull request and bug me until it gets merged and published. :)
