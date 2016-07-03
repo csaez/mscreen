@@ -7,7 +7,7 @@ feedback during debuging and/or in non-critical tools (the library is
 implemented in python, do not expect _high performance_).
 
 ## Features
-The feature set is quite sketchy at the moment, but here's a quick demo:
+Here's a quick demo of the main features:
 
 ```python
 import random
