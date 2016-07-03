@@ -1,10 +1,6 @@
 import random
 import mscreen
-
-mscreen.clear()
-mscreen.refresh()
-
-reload(mscreen)
+reload(mscreen)  # debugging purposes
 
 
 NUM_CVS = 6

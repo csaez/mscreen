@@ -1,10 +1,7 @@
 import random
 import mscreen
+reload(mscreen)  # debugging purposes
 
-mscreen.clear()
-mscreen.refresh()
-
-reload(mscreen)
 
 NUM_POINTS = 50
 COLORS = (

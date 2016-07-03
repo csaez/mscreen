@@ -1,9 +1,5 @@
 import mscreen
-
-mscreen.clear()
-mscreen.refresh()
-
-reload(mscreen)
+reload(mscreen)  # debugging purposes
 
 
 POINTS = ((2.0, 0.0, 2.0), (2.0, 0.0, -2.0), (-2.0, 0.0, -2.0),

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 try:
+    import maya
     import maya.cmds as mc
     import maya.OpenMayaUI as omui
     import maya.OpenMayaRender as omr
@@ -457,28 +458,33 @@ class SceneManager(object):
         # `mscreen` works by registering ONE callback in a Maya 3dview, said
         # callback calls to `__draw` where all the registered primitives are
         # proccessed.
-        self.primitives = list()
-        # `_callback` holds Maya's callback ID.
-        self._callback = None
-
-    def __registerCallback(self):
-        if self._callback is not None:
-            return
-        self._callback = omui.MUiMessage.add3dViewPostRenderMsgCallback(
+        self.callback = omui.MUiMessage.add3dViewPostRenderMsgCallback(
             self.getCurrentModelPanel(), lambda *args: self.__draw())
+        self.primitives = list()
+        self.refresh()
 
-    def __unregisterCallback(self):
-        if self._callback is not None and len(self.primitives) == 0:
-            try:
-                omui.MUiMessage.removeCallback(self._callback)
-            except Exception as err:
-                logger.debug(err)
-            self._callback = None
+    # Maya's callback is stored as a singleton in the maya module so it can be
+    # managed after reloading this module avoiding memory leaks.
+    @property
+    def callback(self):
+        if hasattr(maya, "mscreen_callback"):
+            return maya.mscreen_callback
+
+    @callback.setter
+    def callback(self, value):
+        del self.callback
+        maya.mscreen_callback = value
+
+    @callback.deleter
+    def callback(self):
+        if not self.callback:
+            return
+        omui.MUiMessage.removeCallback(self.callback)
+        del maya.mscreen_callback
 
     def __draw(self):
         for each in self.primitives:
             each.draw(self.view, self.renderer)
-        self.__unregisterCallback()
 
     def refresh(self):
         """
@@ -494,7 +500,6 @@ class SceneManager(object):
 
     def registerPrimitive(self, primitive):
         self.primitives.append(primitive)
-        self.__registerCallback()
 
     def unregisterPrimitive(self, primitive):
         if primitive in self.primitives:
