@@ -337,31 +337,62 @@ class CurvePrim(Primitive):
 
 
 # === Vector Primitive ===
-class VectorPrim(CurvePrim):
+class VectorPrim(Primitive):
     """
-    `CurvePrim` subclass representing a vector.
+    `CurvePrim` draw an arrow  representing a vector in 3D space.
     """
-    def __init__(self, vector, length=1.0, color=None):
-        self._length = length
-        _points = ((0, 0, 0), [x * self.length for x in vector])
-        super(VectorPrim, self).__init__(_points, CURVE_LINEAR, color)
-        self._width = self.width
+    def __init__(self, vector, size=1.0, color=None):
+        super(VectorPrim, self).__init__()
+        self._size = size
+        self.color = color or COLOR_BLACK
 
-    # `length` of the vector
+        # body line
+        _points = ((0, 0, 0), vector)
+        self.body = CurvePrim(_points, color=self.color)
+        self.body.scale(self.size, self.size, self.size)
+
+        # head line
+        m_vector = om2.MVector(*vector)
+        length = m_vector.length()
+        headSize = 0.1 * length
+        points = ((length - headSize, headSize, 0.0),
+                  (length, 0.0, 0.0),
+                  (length-headSize, -headSize, 0.0))
+        self.head = CurvePrim(points, color=self.color)
+        self.isDirty = True  # force to re-orient header
+
+    # `size` represents the scale in which the vector is drawed on the screen
     @property
-    def length(self):
-        return self._length
+    def size(self):
+        return self._size
 
-    @length.setter
-    def length(self, value):
-        self._length = value
-        self.width = max(int(self._width * self.length), 1.0)
+    @size.setter
+    def size(self, value):
+        self._size = value
         self.isDirty = True
 
     def update(self):
         super(VectorPrim, self).update()
-        self._drawPoints[1] = linearInterpolate(
-            self.length, self._drawPoints[0], self._drawPoints[1])
+        # update the line along the length of the vector
+        self.body.color = self.color
+        self.body.transform = self.transform
+        self.body.transform.setScale((self.size, self.size, self.size),
+                                     om2.MSpace.kWorld)
+        self.body.update()
+
+        # update the header of the vector (arrow)
+        self.head.color = self.color
+        self.head.transform = self.body.transform
+        m_vector = om2.MVector(self.body._drawPoints[1])
+        m_vector -= self.transform.translation(om2.MSpace.kWorld)
+        m_vectorX = om2.MVector(1, 0, 0)
+        m_rot = m_vectorX.rotateTo(m_vector)
+        self.head.transform.setRotation(m_rot)
+
+    def draw(self, view, renderer):
+        super(VectorPrim, self).draw(view, renderer)
+        self.body.draw(view, renderer)
+        self.head.draw(view, renderer)
 
 
 # === Transformation Matrix Primitive ===
@@ -392,8 +423,8 @@ class TransformPrim(Primitive):
     def update(self):
         super(TransformPrim, self).update()
         for each in (self._xAxis, self._yAxis, self._zAxis):
-            if each.length != self.size:
-                each.length = self.size
+            if each.size != self.size:
+                each.size = self.size
             if each.transform != self.transform:
                 each.transform = self.transform
 
