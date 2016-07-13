@@ -34,7 +34,7 @@ try:
     import maya.cmds as mc
     import maya.OpenMayaUI as omui
     import maya.OpenMayaRender as omr
-    import maya.api.OpenMaya as om2
+    import maya.api._OpenMaya_py2 as om2
 except ImportError:
     logger.debug('Maya not found')
 
@@ -444,7 +444,7 @@ class PointPrim(Primitive):
         self.transform.setTranslation(position, om2.MSpace.kWorld)
         # `color` as a tuple of floats representing RGB values (normalized).
         self.color = color or COLOR_BLACK
-        self._size = size
+        self.size = size
 
     # `size` in pixels.
     @property
@@ -492,6 +492,7 @@ class SceneManager(object):
         self.callback = omui.MUiMessage.add3dViewPostRenderMsgCallback(
             self.getCurrentModelPanel(), lambda *args: self.__draw())
         self.primitives = list()
+        self._callbacks = list()
         self.refresh()
 
     # Maya's callback is stored as a singleton in the maya module so it can be
@@ -514,6 +515,10 @@ class SceneManager(object):
         del maya.mscreen_callback
 
     def __draw(self):
+        # run callbacks
+        for each in self._callbacks:
+            each()
+        # draw primitives
         for each in self.primitives:
             each.draw(self.view, self.renderer)
 
@@ -528,6 +533,9 @@ class SceneManager(object):
         Clear the screen by removing all registered primitives.
         """
         self.primitives = list()
+
+    def registerCallback(self, func):
+        self._callbacks.append(func)
 
     def registerPrimitive(self, primitive):
         self.primitives.append(primitive)
@@ -620,3 +628,4 @@ drawCurve = _scn.drawCurve
 drawTransform = _scn.drawTransform
 drawPoint = _scn.drawPoint
 erase = _scn.unregisterPrimitive
+registerCallback = _scn.registerCallback
