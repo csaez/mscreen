@@ -1,5 +1,4 @@
 import random
-
 import maya.cmds as cmds
 import maya.api._OpenMaya_py2 as om2
 
@@ -16,20 +15,11 @@ class Particle(object):
         self.age = 0
         self.velocity = om2.MVector()
 
-        self._color = mscreen.COLOR_DARKCYAN
-        self.size = 8
+        self.color = mscreen.COLOR_DARKCYAN
+        self.size = 5
 
     def destroy(self):
         mscreen.erase(self.gl)
-
-    @property
-    def speed(self):
-        return self.velocity.length()
-
-    @speed.setter
-    def speed(self, value):
-        self.velocity.normalize()
-        self.velocity *= value
 
     @property
     def position(self):
@@ -53,17 +43,48 @@ class Particle(object):
 
     @color.setter
     def color(self, value):
-        speed = self.speed * 0.1
-        self.gl.color = [x + speed for x in self._color]
+        self.gl.color = value
+
+
+class Emitter(object):
+    def __init__(self):
+        super(Emitter, self).__init__()
+        self.rate = 20
+        self.position = om2.MVector()
+        self._initialVelocity = om2.MVector(0, 1, 0)
+        self._randomize = False
+
+    @property
+    def initialVelocity(self):
+        if self._randomize:
+            return self._randomizeVelocity()
+        return self._initialVelocity
+
+    @initialVelocity.setter
+    def initialVelocity(self, value):
+        self._initialVelocity = value
+
+    def randomizeVelocity(self, minimum=None, maximum=None):
+        self._randomMinimum = minimum or om2.MVector(-0.1, -0.1, -0.1)
+        self._randomMaximum = maximum or om2.MVector(0.1, 0.1, 0.1)
+        self._randomize = True
+
+    def _randomizeVelocity(self):
+        v = om2.MVector()
+        for i in range(3):
+            factor = random.random() * 2
+            v[i] = self._randomMinimum[i] + (factor * self._randomMaximum[i])
+        v += self._initialVelocity
+        return v
 
 
 class ParticleSystem(object):
     def __init__(self):
         super(ParticleSystem, self).__init__()
         self.forces = list()
-        self.fps = 24
-        self._emit = False
-        self.lifeSpan = None
+        self.emitters = list()
+        self.ageLimit = None
+        self.time = 1
         self.clear()
 
     def clear(self):
@@ -76,55 +97,40 @@ class ParticleSystem(object):
         self.particles.append(p)
         return p
 
-    def addEmitter(self, source, rate, velocity=None):
-        self.time = 0
-        self.emitionSource = source
-        self.emitionRate = rate
-        self.emitionVelocity = om2.MVector(velocity)
-        self._emit = True
+    def addEmitter(self, emitter):
+        self.emitters.append(emitter)
 
     def addForce(self, force):
         self.forces.append(force)
 
     def simulate(self, time):
-        if time == 0 and time != self.time:
+        if time == 1 and time != self.time:
             self.clear()
-            self.time = 0
+            self.time = 1
             return
 
         if time <= self.time:
             return
 
-        if self._emit:
-            for _ in range(self.emitionRate):
+        for e in self.emitters:
+            for _ in range(e.rate):
                 p = self.addPoint()
-                p.position = om2.MVector(
-                    self.emitionSource.x + (2 * (0.5 - random.random())),
-                    self.emitionSource.y,
-                    self.emitionSource.z + (2 * (0.5 - random.random())))
-                p.velocity = om2.MVector(
-                    self.emitionVelocity.x * (2.0 * (0.5 - random.random())),
-                    self.emitionVelocity.y,
-                    # self.emitionVelocity.y * (2.0 * (0.5 - random.random())),
-                    self.emitionVelocity.z * (2.0 * (0.5 - random.random())))
+                p.position = om2.MVector(e.position)
+                p.velocity = om2.MVector(e.initialVelocity)
 
-        for _ in range(time - self.time):
-            for p in self.particles:
-                if p is None:
-                    continue
-                # update velocity
-                for f in self.forces:
-                    p.velocity += f * p.mass
-                # update position
-                p.position += p.velocity
-                p.age += 1
-
-                speed = p.speed * 0.4
-                p.gl.color = [x + speed for x in p._color]
-
-                if self.lifeSpan and p.age > self.lifeSpan:
-                    p.destroy()
-                    self.particles[p.id] = None
+        for p in self.particles:
+            if p is None:
+                continue
+            # update velocity
+            for f in self.forces:
+                p.velocity += f(p)
+            # update position
+            p.position += p.velocity
+            p.age += 1
+            # remove old particle
+            if self.ageLimit and p.age > self.ageLimit:
+                p.destroy()
+                self.particles[p.id] = None
 
         self.time = time
 
@@ -134,9 +140,25 @@ def simulate(particleSystem):
     particleSystem.simulate(int(time))
 
 
+def bounce(p, groundLevel=0.0):
+    f = om2.MVector()
+    if p.position.y < groundLevel:
+        f.y = -1.5 * p.velocity.y
+        p.position = om2.MVector(p.position.x,
+                                 groundLevel + 0.01,
+                                 p.position.z)
+    return f
+
 ps = ParticleSystem()
-ps.addEmitter(om2.MVector(0.0, 3.0, 0.0), 20,
-              om2.MVector(0.3, 1.0, 0.3))
-ps.addForce(om2.MVector(0.0, -0.098, 0.0))
-ps.lifeSpan = 50
+ps.addForce(lambda p: om2.MVector(0.0, -0.098, 0.0) * p.mass)
+ps.addForce(bounce)
+ps.ageLimit = 50
+
+e = Emitter()
+e.rate = 20
+e.position = om2.MVector(0.0, 0.01, 0.0)
+e.initialVelocity = om2.MVector(0.0, 1.0, 0.0)
+e.randomizeVelocity()
+ps.addEmitter(e)
+
 mscreen.registerCallback(lambda: simulate(ps))
