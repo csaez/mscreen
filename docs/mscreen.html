@@ -57,7 +57,7 @@ into a folder in your <code>PYTHONPATH</code>.</p>
     <span class="kn">import</span> <span class="nn">maya.cmds</span> <span class="kn">as</span> <span class="nn">mc</span>
     <span class="kn">import</span> <span class="nn">maya.OpenMayaUI</span> <span class="kn">as</span> <span class="nn">omui</span>
     <span class="kn">import</span> <span class="nn">maya.OpenMayaRender</span> <span class="kn">as</span> <span class="nn">omr</span>
-    <span class="kn">import</span> <span class="nn">maya.api.OpenMaya</span> <span class="kn">as</span> <span class="nn">om2</span>
+    <span class="kn">import</span> <span class="nn">maya.api._OpenMaya_py2</span> <span class="kn">as</span> <span class="nn">om2</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Maya not found&#39;</span><span class="p">)</span></pre></div>
     </div>
@@ -670,7 +670,7 @@ on subclasses... unless you know what you're doing).</p>
       <h3><span id="vector-primitive" href="vector-primitive"> Vector Primitive </span></h3>
     </div>
     <div class='code'>
-      <div class="highlight"><pre><span class="k">class</span> <span class="nc">VectorPrim</span><span class="p">(</span><span class="n">CurvePrim</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre><span class="k">class</span> <span class="nc">VectorPrim</span><span class="p">(</span><span class="n">Primitive</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -679,14 +679,13 @@ on subclasses... unless you know what you're doing).</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-36'>#</a>
       </div>
-      <p><code>CurvePrim</code> subclass representing a vector.</p>
+      <p><code>CurvePrim</code> draw an arrow  representing a vector in 3D space.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">=</span> <span class="n">length</span>
-        <span class="n">_points</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">vector</span><span class="p">])</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">_points</span><span class="p">,</span> <span class="n">CURVE_LINEAR</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span></pre></div>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span> <span class="ow">or</span> <span class="n">COLOR_BLACK</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -695,23 +694,12 @@ on subclasses... unless you know what you're doing).</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-37'>#</a>
       </div>
-      <p><code>length</code> of the vector</p>
+      <p>body line</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_length</span>
-
-    <span class="nd">@length.setter</span>
-    <span class="k">def</span> <span class="nf">length</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_length</span> <span class="o">=</span> <span class="n">value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">width</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_width</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
-
-    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">linearInterpolate</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></pre></div>
+      <div class="highlight"><pre>        <span class="n">_points</span> <span class="o">=</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">vector</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">_points</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">scale</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">)</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -719,6 +707,96 @@ on subclasses... unless you know what you're doing).</p>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-38'>#</a>
+      </div>
+      <p>head line</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">m_vector</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="o">*</span><span class="n">vector</span><span class="p">)</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">m_vector</span><span class="o">.</span><span class="n">length</span><span class="p">()</span>
+        <span class="n">headSize</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">length</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">((</span><span class="n">length</span> <span class="o">-</span> <span class="n">headSize</span><span class="p">,</span> <span class="n">headSize</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                  <span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                  <span class="p">(</span><span class="n">length</span><span class="o">-</span><span class="n">headSize</span><span class="p">,</span> <span class="o">-</span><span class="n">headSize</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>  <span class="c1"># force to re-orient header</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-39'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-39'>#</a>
+      </div>
+      <p><code>size</code> represents the scale in which the vector is drawed on the screen</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+
+    <span class="nd">@size.setter</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+
+    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-40'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-40'>#</a>
+      </div>
+      <p>update the line along the length of the vector</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">setScale</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">),</span>
+                                     <span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">update</span><span class="p">()</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-41'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-41'>#</a>
+      </div>
+      <p>update the header of the vector (arrow)</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">transform</span>
+        <span class="n">m_vector</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">_drawPoints</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">m_vector</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">translation</span><span class="p">(</span><span class="n">om2</span><span class="o">.</span><span class="n">MSpace</span><span class="o">.</span><span class="n">kWorld</span><span class="p">)</span>
+        <span class="n">m_vectorX</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">m_rot</span> <span class="o">=</span> <span class="n">m_vectorX</span><span class="o">.</span><span class="n">rotateTo</span><span class="p">(</span><span class="n">m_vector</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">transform</span><span class="o">.</span><span class="n">setRotation</span><span class="p">(</span><span class="n">m_rot</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-42'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-42'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">VectorPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">head</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-43'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-43'>#</a>
       </div>
       <h3><span id="transformation-matrix-primitive" href="transformation-matrix-primitive"> Transformation Matrix Primitive </span></h3>
     </div>
@@ -730,10 +808,10 @@ on subclasses... unless you know what you're doing).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-39'>
+  <div class='section' id='section-44'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-39'>#</a>
+        <a class='octothorpe' href='#section-44'>#</a>
       </div>
       
     </div>
@@ -743,10 +821,10 @@ on subclasses... unless you know what you're doing).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-40'>
+  <div class='section' id='section-45'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-40'>#</a>
+        <a class='octothorpe' href='#section-45'>#</a>
       </div>
       <p>Notice how 3 vectors can be used to compose the matrix (depending on
 your use case, composition can provide a more convenient/clean way to
@@ -760,10 +838,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-41'>
+  <div class='section' id='section-46'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-41'>#</a>
+        <a class='octothorpe' href='#section-46'>#</a>
       </div>
       
     </div>
@@ -780,8 +858,8 @@ extend classes than inheritance).</p>
     <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">TransformPrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_xAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_yAxis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zAxis</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">each</span><span class="o">.</span><span class="n">length</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-                <span class="n">each</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
+            <span class="k">if</span> <span class="n">each</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="n">each</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
             <span class="k">if</span> <span class="n">each</span><span class="o">.</span><span class="n">transform</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">:</span>
                 <span class="n">each</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span>
 
@@ -792,10 +870,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-42'>
+  <div class='section' id='section-47'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-42'>#</a>
+        <a class='octothorpe' href='#section-47'>#</a>
       </div>
       <h3><span id="point-primitive" href="point-primitive"> Point Primitive </span></h3>
     </div>
@@ -804,10 +882,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-43'>
+  <div class='section' id='section-48'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-43'>#</a>
+        <a class='octothorpe' href='#section-48'>#</a>
       </div>
       
     </div>
@@ -820,23 +898,23 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-44'>
+  <div class='section' id='section-49'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-44'>#</a>
+        <a class='octothorpe' href='#section-49'>#</a>
       </div>
       <p><code>color</code> as a tuple of floats representing RGB values (normalized).</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span> <span class="ow">or</span> <span class="n">COLOR_BLACK</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="n">size</span></pre></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">=</span> <span class="n">size</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-45'>
+  <div class='section' id='section-50'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-45'>#</a>
+        <a class='octothorpe' href='#section-50'>#</a>
       </div>
       <p><code>size</code> in pixels.</p>
     </div>
@@ -870,10 +948,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-46'>
+  <div class='section' id='section-51'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-46'>#</a>
+        <a class='octothorpe' href='#section-51'>#</a>
       </div>
       <h3><span id="scene-manager" href="scene-manager"> Scene Manager </span></h3>
     </div>
@@ -882,10 +960,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-47'>
+  <div class='section' id='section-52'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-47'>#</a>
+        <a class='octothorpe' href='#section-52'>#</a>
       </div>
       <p><code>SceneManager</code> is the entity interacting with Maya renderer and managing
 <code>mscreen</code> primitives, this is the main entry point for most users of the
@@ -897,10 +975,10 @@ library.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-48'>
+  <div class='section' id='section-53'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-48'>#</a>
+        <a class='octothorpe' href='#section-53'>#</a>
       </div>
       
     </div>
@@ -909,10 +987,10 @@ library.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-49'>
+  <div class='section' id='section-54'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-49'>#</a>
+        <a class='octothorpe' href='#section-54'>#</a>
       </div>
       <p><code>mscreen</code> works by registering ONE callback in a Maya 3dview, said
 callback calls to <code>__draw</code> where all the registered primitives are
@@ -922,14 +1000,15 @@ proccessed.</p>
       <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">omui</span><span class="o">.</span><span class="n">MUiMessage</span><span class="o">.</span><span class="n">add3dViewPostRenderMsgCallback</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">getCurrentModelPanel</span><span class="p">(),</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">__draw</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">refresh</span><span class="p">()</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-50'>
+  <div class='section' id='section-55'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-50'>#</a>
+        <a class='octothorpe' href='#section-55'>#</a>
       </div>
       <p>Maya's callback is stored as a singleton in the maya module so it can be
 managed after reloading this module avoiding memory leaks.</p>
@@ -952,74 +1031,7 @@ managed after reloading this module avoiding memory leaks.</p>
         <span class="n">omui</span><span class="o">.</span><span class="n">MUiMessage</span><span class="o">.</span><span class="n">removeCallback</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">callback</span><span class="p">)</span>
         <span class="k">del</span> <span class="n">maya</span><span class="o">.</span><span class="n">mscreen_callback</span>
 
-    <span class="k">def</span> <span class="nf">__draw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
-            <span class="n">each</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-51'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-51'>#</a>
-      </div>
-      <p>Force a refresh of the Maya viewport.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-52'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-52'>#</a>
-      </div>
-      <p>Clear the screen by removing all registered primitives.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-53'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-53'>#</a>
-      </div>
-      
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-54'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-54'>#</a>
-      </div>
-      
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-55'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-55'>#</a>
-      </div>
-      
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">primitive</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    <span class="k">def</span> <span class="nf">__draw</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1028,10 +1040,11 @@ managed after reloading this module avoiding memory leaks.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-56'>#</a>
       </div>
-      <p>Convenience method creating and registering a <code>CurvePrim</code>.</p>
+      <p>run callbacks</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre>        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">:</span>
+            <span class="n">each</span><span class="p">()</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1040,12 +1053,11 @@ managed after reloading this module avoiding memory leaks.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-57'>#</a>
       </div>
-      
+      <p>draw primitives</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="n">curve</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">curve</span></pre></div>
+      <div class="highlight"><pre>        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
+            <span class="n">each</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">renderer</span><span class="p">)</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1054,10 +1066,10 @@ managed after reloading this module avoiding memory leaks.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-58'>#</a>
       </div>
-      <p>Convenience method creating and registering a <code>TransformPrim</code>.</p>
+      <p>Force a refresh of the Maya viewport.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1069,9 +1081,7 @@ managed after reloading this module avoiding memory leaks.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="n">xfo</span> <span class="o">=</span> <span class="n">TransformPrim</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">xfo</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">xfo</span></pre></div>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1080,10 +1090,10 @@ managed after reloading this module avoiding memory leaks.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-60'>#</a>
       </div>
-      <p>Convenience method creating and registering a <code>PointPrim</code>.</p>
+      <p>Clear the screen by removing all registered primitives.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1095,9 +1105,7 @@ managed after reloading this module avoiding memory leaks.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="n">point</span> <span class="o">=</span> <span class="n">PointPrim</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">point</span></pre></div>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1105,6 +1113,155 @@ managed after reloading this module avoiding memory leaks.</p>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-62'>#</a>
+      </div>
+      <p>Unless previous callbacks, this register a function at a mscreen level
+that you can use to update all primitives according to some event.</p>
+<p>An example of this callback is the particle system on
+<code>tests/tests_stress.py</code>, where we register a callback simulating all
+primitives/particles on time chance.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-63'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-63'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">func</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-64'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-64'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">item</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_callbacks</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">item</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-65'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-65'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-66'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-66'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">primitive</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-67'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-67'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>CurvePrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-68'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-68'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">curve</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">curve</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-69'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-69'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>TransformPrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-70'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-70'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">xfo</span> <span class="o">=</span> <span class="n">TransformPrim</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">xfo</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xfo</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-71'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-71'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>PointPrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-72'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-72'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="n">point</span> <span class="o">=</span> <span class="n">PointPrim</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">point</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-73'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-73'>#</a>
       </div>
       
     </div>
@@ -1121,10 +1278,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-63'>
+  <div class='section' id='section-74'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-63'>#</a>
+        <a class='octothorpe' href='#section-74'>#</a>
       </div>
       <h3><span id="utility-functions" href="utility-functions"> Utility functions </span></h3>
     </div>
@@ -1139,10 +1296,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-64'>
+  <div class='section' id='section-75'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-64'>#</a>
+        <a class='octothorpe' href='#section-75'>#</a>
       </div>
       <p>Performs a linear interpolation between p0 and p1.</p>
     </div>
@@ -1151,10 +1308,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-65'>
+  <div class='section' id='section-76'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-65'>#</a>
+        <a class='octothorpe' href='#section-76'>#</a>
       </div>
       
     </div>
@@ -1166,10 +1323,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-66'>
+  <div class='section' id='section-77'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-66'>#</a>
+        <a class='octothorpe' href='#section-77'>#</a>
       </div>
       <p>Performs a bezier interpolation (recursive).</p>
     </div>
@@ -1178,10 +1335,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-67'>
+  <div class='section' id='section-78'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-67'>#</a>
+        <a class='octothorpe' href='#section-78'>#</a>
       </div>
       
     </div>
@@ -1205,10 +1362,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-68'>
+  <div class='section' id='section-79'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-68'>#</a>
+        <a class='octothorpe' href='#section-79'>#</a>
       </div>
       <h3><span id="accessors" href="accessors"> Accessors </span></h3>
     </div>
@@ -1220,6 +1377,7 @@ managed after reloading this module avoiding memory leaks.</p>
 <span class="n">drawTransform</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">drawTransform</span>
 <span class="n">drawPoint</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">drawPoint</span>
 <span class="n">erase</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">unregisterPrimitive</span>
+<span class="n">registerCallback</span> <span class="o">=</span> <span class="n">_scn</span><span class="o">.</span><span class="n">registerCallback</span>
 
 </pre></div>
     </div>
