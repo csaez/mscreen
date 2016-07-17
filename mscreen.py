@@ -535,7 +535,21 @@ class SceneManager(object):
         self.primitives = list()
 
     def registerCallback(self, func):
+        """
+        Unless previous callbacks, this register a function at a mscreen level
+        that you can use to update all primitives according to some event.
+
+        An example of this callback is the particle system on
+        `tests/tests_stress.py`, where we register a callback simulating all
+        primitives/particles on time chance.
+        """
         self._callbacks.append(func)
+
+    def unregisterCallback(self, item):
+        if isinstance(item, int):
+            item = self._callbacks[item]
+        if item in self._callbacks:
+            self._callbacks.remove(item)
 
     def registerPrimitive(self, primitive):
         self.primitives.append(primitive)
