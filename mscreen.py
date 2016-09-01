@@ -479,20 +479,24 @@ class TrianglePrim(Primitive):
     """
     Primitive representing poly-curves (arbitrary number of points).
     """
-    def __init__(self, points=None, colors=None, width=2):
+    def __init__(self, points=None, colors=None):
         super(TrianglePrim, self).__init__()
 
-        # `width` of the curve, in pixels
-        self.width = width
-        # `color` of the curve (tuple of floats representing RGB components)
-        self.colors = colors or COLOR_BLACK
+        # `color` of the curve , can be a list of colors or a single color, each
+        # color is defined by a float3
 
         self._points = list()  # control points
         self._drawPoints = list()  # drawable points
         self._prePoints = list()  # pre-transform points
+        self._colors = None
+        #private boolean holding wheter a list or single color has been passed
+        self.__is_color_list = False
 
         if points:
             self.points = points
+
+        self.colors = colors or COLOR_BLACK
+
 
     @property
     def points(self):
@@ -505,8 +509,72 @@ class TrianglePrim(Primitive):
         self._prePoints = list(value)
         self._drawPoints = list(value)
         self.isDirty = True
+    
+    @property
+    def colors(self):
+        if self.isDirty:
+            self.update()
+        return self._colors
 
+    @colors.setter
+    def colors(self, value):
+
+        valid_data =True 
+        is_container = any( [isinstance(value, __type) for __type in (list, tuple)])
+        if not is_container:
+            return
+        
+        #lets check if is a single color
+        res = self.__is_single_color(value)
+        if res:
+            self._colors = value
+            self.isDirty = True
+            self.__is_color_list =False 
+            return
+
+        res = self.__is_three_colors(value)
+        if res:
+            self._colors = value
+            self.isDirty = True
+            self.__is_color_list =True 
+            return
+
+        raise ValueError("Provided colors are not valid") 
+
+    
+    def __is_single_color(self, value):
+        #This function is in charge to check whether the input value is a single color,
+        # aka a list of three float
+        is_valid = True
+        is_container = any( [isinstance(value, __type) for __type in (list, tuple)])
+
+        #if is a container and size list we proceed or we quit
+        if is_container and len(value )==3:
+            for v in value:
+                #we check if every element of the container is a number
+                is_number = any( [isinstance(v, __type) for __type in (int, float)])
+                if not is_number :
+                    is_valid = False
+                    break
+        else:
+            is_valid =False
+        
+        return is_valid
             
+    def __is_three_colors(self, value):
+        #this function is in charge to check wheter the input value is a list
+        #of 3 colors
+        is_valid = True
+        is_container = any( [isinstance(value, __type) for __type in (list, tuple)])
+        if is_container:
+            for v in value:
+                if not self.__is_single_color(v):
+                    is_valid=False
+                    break
+        else:
+            is_valid = False
+    
+        return is_valid
 
     def update(self):
         super(TrianglePrim, self).update()
@@ -523,13 +591,15 @@ class TrianglePrim(Primitive):
         view.beginGL()
         glFT = renderer.glFunctionTable()
         glFT.glPushAttrib(omr.MGL_LINE_BIT)
-        glFT.glLineWidth(self.width)
         glFT.glBegin(omr.MGL_TRIANGLES)
 
 
         for i,point in enumerate(self._points):
             #unpacking the color in a color 3f
-            glFT.glColor3f(*self.colors[i])
+            if self.__is_color_list:
+                glFT.glColor3f(*self.colors[i])
+            else:
+                glFT.glColor3f(*self.colors)
             #drawing the point
             glFT.glVertex3f(point.x, point.y, point.z)
 
