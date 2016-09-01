@@ -474,6 +474,68 @@ class PointPrim(Primitive):
         glFT.glPopAttrib()
         view.endGL()
 
+# === Triangle Primitive ===
+class TrianglePrim(Primitive):
+    """
+    Primitive representing poly-curves (arbitrary number of points).
+    """
+    def __init__(self, points=None, colors=None, width=2):
+        super(TrianglePrim, self).__init__()
+
+        # `width` of the curve, in pixels
+        self.width = width
+        # `color` of the curve (tuple of floats representing RGB components)
+        self.colors = colors or COLOR_BLACK
+
+        self._points = list()  # control points
+        self._drawPoints = list()  # drawable points
+        self._prePoints = list()  # pre-transform points
+
+        if points:
+            self.points = points
+
+    @property
+    def points(self):
+        if self.isDirty:
+            self.update()
+        return self._points
+
+    @points.setter
+    def points(self, value):
+        self._prePoints = list(value)
+        self._drawPoints = list(value)
+        self.isDirty = True
+
+            
+
+    def update(self):
+        super(TrianglePrim, self).update()
+        self._points = []
+        matrix = self.transform.asMatrix()
+        for i in xrange(len(self._prePoints)):
+            point = om2.MPoint(self._prePoints[i])
+            point *= matrix
+            self._points.append(point)
+
+    def draw(self, view, renderer):
+        super(TrianglePrim, self).draw(view, renderer)
+
+        view.beginGL()
+        glFT = renderer.glFunctionTable()
+        glFT.glPushAttrib(omr.MGL_LINE_BIT)
+        glFT.glLineWidth(self.width)
+        glFT.glBegin(omr.MGL_TRIANGLES)
+
+
+        for i,point in enumerate(self._points):
+            #unpacking the color in a color 3f
+            glFT.glColor3f(*self.colors[i])
+            #drawing the point
+            glFT.glVertex3f(point.x, point.y, point.z)
+
+        glFT.glEnd()
+        glFT.glPopAttrib()
+        view.endGL()
 
 # === Scene Manager ===
 class SceneManager(object):
@@ -582,6 +644,13 @@ class SceneManager(object):
         self.registerPrimitive(point)
         return point
 
+    def drawTriangle(self, points,colors):
+
+        triangle= TrianglePrim(points, colors)
+        self.registerPrimitive(triangle)
+        return triangle
+
+
     @staticmethod
     def getCurrentModelPanel():
         currentModelPanel = mc.getPanel(wf=True)
@@ -591,6 +660,8 @@ class SceneManager(object):
                 if "modelPanel" in each:
                     currentModelPanel = each
         return currentModelPanel
+
+
 
 
 # === Utility functions ===
@@ -641,5 +712,6 @@ refresh = _scn.refresh
 drawCurve = _scn.drawCurve
 drawTransform = _scn.drawTransform
 drawPoint = _scn.drawPoint
+drawTriangle = _scn.drawTriangle
 erase = _scn.unregisterPrimitive
 registerCallback = _scn.registerCallback
