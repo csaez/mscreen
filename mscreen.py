@@ -520,9 +520,9 @@ class TrianglePrim(Primitive):
 
     def _isColorPerPoint(self):
         for each in self._colors:
-            if isinstance(each, (list, tuple)):
-                return True
-        return False
+            if isinstance(each, (int, float)):
+                return False
+            return True
 
     def update(self):
         super(TrianglePrim, self).update()
