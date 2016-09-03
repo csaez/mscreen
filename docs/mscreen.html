@@ -274,7 +274,6 @@ API.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)]</span>
         <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span> <span class="o">==</span> <span class="n">z</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="n">om2</span><span class="o">.</span><span class="n">MVector</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
@@ -974,6 +973,7 @@ extend classes than inheritance).</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">_drawPoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>  <span class="c1"># drawable points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_prePoints</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>  <span class="c1"># pre-transform points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_colors</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_colorPerPoint</span> <span class="o">=</span> <span class="bp">False</span>
         <span class="k">if</span> <span class="n">points</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">points</span> <span class="o">=</span> <span class="n">points</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">colors</span> <span class="o">=</span> <span class="n">colors</span> <span class="ow">or</span> <span class="n">COLOR_BLACK</span></pre></div>
@@ -1011,15 +1011,16 @@ extend classes than inheritance).</p>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_colors</span> <span class="o">=</span> <span class="n">value</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">isDirty</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_colorPerPoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_isColorPerPoint</span><span class="p">()</span>
             <span class="k">return</span> <span class="bp">True</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Unable to set colors: &#39;</span> <span class="o">+</span> <span class="n">value</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">False</span>
 
-    <span class="k">def</span> <span class="nf">_is_color_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">each</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">each</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">True</span>
-        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">def</span> <span class="nf">_isColorPerPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colors</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">each</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">return</span> <span class="bp">True</span>
 
     <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">TrianglePrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
@@ -1032,13 +1033,21 @@ extend classes than inheritance).</p>
 
     <span class="k">def</span> <span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">TrianglePrim</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">view</span><span class="p">,</span> <span class="n">renderer</span><span class="p">)</span>
-
         <span class="n">view</span><span class="o">.</span><span class="n">beginGL</span><span class="p">()</span>
         <span class="n">glFT</span> <span class="o">=</span> <span class="n">renderer</span><span class="o">.</span><span class="n">glFunctionTable</span><span class="p">()</span>
-        <span class="n">glFT</span><span class="o">.</span><span class="n">glPushAttrib</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_LINE_BIT</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colorPerPoint</span><span class="p">:</span>
+            <span class="n">glFT</span><span class="o">.</span><span class="n">glShadeModel</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_SMOOTH</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span>
         <span class="n">glFT</span><span class="o">.</span><span class="n">glBegin</span><span class="p">(</span><span class="n">omr</span><span class="o">.</span><span class="n">MGL_TRIANGLES</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="p">):</span></pre></div>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">point</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_points</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_colorPerPoint</span><span class="p">:</span>
+                <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">glFT</span><span class="o">.</span><span class="n">glVertex3f</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
+
+        <span class="n">glFT</span><span class="o">.</span><span class="n">glEnd</span><span class="p">()</span>
+        <span class="n">view</span><span class="o">.</span><span class="n">endGL</span><span class="p">()</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1047,37 +1056,6 @@ extend classes than inheritance).</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-54'>#</a>
       </div>
-      <p>unpacking the color in a color 3f</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_color_list</span><span class="p">():</span>
-                <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">glFT</span><span class="o">.</span><span class="n">glColor3f</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">colors</span><span class="p">)</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-55'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-55'>#</a>
-      </div>
-      <p>drawing the point</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>            <span class="n">glFT</span><span class="o">.</span><span class="n">glVertex3f</span><span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">z</span><span class="p">)</span>
-
-        <span class="n">glFT</span><span class="o">.</span><span class="n">glEnd</span><span class="p">()</span>
-        <span class="n">glFT</span><span class="o">.</span><span class="n">glPopAttrib</span><span class="p">()</span>
-        <span class="n">view</span><span class="o">.</span><span class="n">endGL</span><span class="p">()</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-56'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-56'>#</a>
-      </div>
       <h3><span id="scene-manager" href="scene-manager"> Scene Manager </span></h3>
     </div>
     <div class='code'>
@@ -1085,10 +1063,10 @@ extend classes than inheritance).</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-57'>
+  <div class='section' id='section-55'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-57'>#</a>
+        <a class='octothorpe' href='#section-55'>#</a>
       </div>
       <p><code>SceneManager</code> is the entity interacting with Maya renderer and managing
 <code>mscreen</code> primitives, this is the main entry point for most users of the
@@ -1100,10 +1078,10 @@ library.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-58'>
+  <div class='section' id='section-56'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-58'>#</a>
+        <a class='octothorpe' href='#section-56'>#</a>
       </div>
       
     </div>
@@ -1112,10 +1090,10 @@ library.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-59'>
+  <div class='section' id='section-57'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-59'>#</a>
+        <a class='octothorpe' href='#section-57'>#</a>
       </div>
       <p><code>mscreen</code> works by registering ONE callback in a Maya 3dview, said
 callback calls to <code>__draw</code> where all the registered primitives are
@@ -1130,10 +1108,10 @@ proccessed.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-60'>
+  <div class='section' id='section-58'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-60'>#</a>
+        <a class='octothorpe' href='#section-58'>#</a>
       </div>
       <p>Maya's callback is stored as a singleton in the maya module so it can be
 managed after reloading this module avoiding memory leaks.</p>
@@ -1160,10 +1138,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-61'>
+  <div class='section' id='section-59'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-61'>#</a>
+        <a class='octothorpe' href='#section-59'>#</a>
       </div>
       <p>run callbacks</p>
     </div>
@@ -1173,10 +1151,10 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-62'>
+  <div class='section' id='section-60'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-62'>#</a>
+        <a class='octothorpe' href='#section-60'>#</a>
       </div>
       <p>draw primitives</p>
     </div>
@@ -1186,15 +1164,39 @@ managed after reloading this module avoiding memory leaks.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-63'>
+  <div class='section' id='section-61'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-63'>#</a>
+        <a class='octothorpe' href='#section-61'>#</a>
       </div>
       <p>Force a refresh of the Maya viewport.</p>
     </div>
     <div class='code'>
       <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-62'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-62'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-63'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-63'>#</a>
+      </div>
+      <p>Clear the screen by removing all registered primitives.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1206,7 +1208,7 @@ managed after reloading this module avoiding memory leaks.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span></pre></div>
+      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1214,30 +1216,6 @@ managed after reloading this module avoiding memory leaks.</p>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-65'>#</a>
-      </div>
-      <p>Clear the screen by removing all registered primitives.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-66'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-66'>#</a>
-      </div>
-      
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>        <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-67'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-67'>#</a>
       </div>
       <p>Unless previous callbacks, this register a function at a mscreen level
 that you can use to update all primitives according to some event.</p>
@@ -1250,10 +1228,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-68'>
+  <div class='section' id='section-66'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-68'>#</a>
+        <a class='octothorpe' href='#section-66'>#</a>
       </div>
       
     </div>
@@ -1262,10 +1240,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-69'>
+  <div class='section' id='section-67'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-69'>#</a>
+        <a class='octothorpe' href='#section-67'>#</a>
       </div>
       
     </div>
@@ -1278,16 +1256,42 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-70'>
+  <div class='section' id='section-68'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-70'>#</a>
+        <a class='octothorpe' href='#section-68'>#</a>
       </div>
       
     </div>
     <div class='code'>
       <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">registerPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-69'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-69'>#</a>
+      </div>
+      
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">primitive</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+    </div>
+  </div>
+  <div class='clearall'></div>
+  <div class='section' id='section-70'>
+    <div class='docs'>
+      <div class='octowrap'>
+        <a class='octothorpe' href='#section-70'>#</a>
+      </div>
+      <p>Convenience method creating and registering a <code>CurvePrim</code>.</p>
+    </div>
+    <div class='code'>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1299,9 +1303,9 @@ primitives/particles on time chance.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">unregisterPrimitive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">primitive</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">primitive</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">primitives</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">primitive</span><span class="p">)</span></pre></div>
+      <div class="highlight"><pre>        <span class="n">curve</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">curve</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1310,10 +1314,10 @@ primitives/particles on time chance.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-72'>#</a>
       </div>
-      <p>Convenience method creating and registering a <code>CurvePrim</code>.</p>
+      <p>Convenience method creating and registering a <code>TransformPrim</code>.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawCurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1325,9 +1329,9 @@ primitives/particles on time chance.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="n">curve</span> <span class="o">=</span> <span class="n">CurvePrim</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">degree</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">curve</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">curve</span></pre></div>
+      <div class="highlight"><pre>        <span class="n">xfo</span> <span class="o">=</span> <span class="n">TransformPrim</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">xfo</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">xfo</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1336,10 +1340,10 @@ primitives/particles on time chance.</p>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-74'>#</a>
       </div>
-      <p>Convenience method creating and registering a <code>TransformPrim</code>.</p>
+      <p>Convenience method creating and registering a <code>PointPrim</code>.</p>
     </div>
     <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span></pre></div>
+      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1351,9 +1355,9 @@ primitives/particles on time chance.</p>
       
     </div>
     <div class='code'>
-      <div class="highlight"><pre>        <span class="n">xfo</span> <span class="o">=</span> <span class="n">TransformPrim</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">xfo</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">xfo</span></pre></div>
+      <div class="highlight"><pre>        <span class="n">point</span> <span class="o">=</span> <span class="n">PointPrim</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">point</span></pre></div>
     </div>
   </div>
   <div class='clearall'></div>
@@ -1361,32 +1365,6 @@ primitives/particles on time chance.</p>
     <div class='docs'>
       <div class='octowrap'>
         <a class='octothorpe' href='#section-76'>#</a>
-      </div>
-      <p>Convenience method creating and registering a <code>PointPrim</code>.</p>
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>    <span class="k">def</span> <span class="nf">drawPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-77'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-77'>#</a>
-      </div>
-      
-    </div>
-    <div class='code'>
-      <div class="highlight"><pre>        <span class="n">point</span> <span class="o">=</span> <span class="n">PointPrim</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">registerPrimitive</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">point</span></pre></div>
-    </div>
-  </div>
-  <div class='clearall'></div>
-  <div class='section' id='section-78'>
-    <div class='docs'>
-      <div class='octowrap'>
-        <a class='octothorpe' href='#section-78'>#</a>
       </div>
       
     </div>
@@ -1398,10 +1376,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-79'>
+  <div class='section' id='section-77'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-79'>#</a>
+        <a class='octothorpe' href='#section-77'>#</a>
       </div>
       
     </div>
@@ -1418,10 +1396,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-80'>
+  <div class='section' id='section-78'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-80'>#</a>
+        <a class='octothorpe' href='#section-78'>#</a>
       </div>
       <h3><span id="utility-functions" href="utility-functions"> Utility functions </span></h3>
     </div>
@@ -1436,10 +1414,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-81'>
+  <div class='section' id='section-79'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-81'>#</a>
+        <a class='octothorpe' href='#section-79'>#</a>
       </div>
       <p>Performs a linear interpolation between p0 and p1.</p>
     </div>
@@ -1448,10 +1426,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-82'>
+  <div class='section' id='section-80'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-82'>#</a>
+        <a class='octothorpe' href='#section-80'>#</a>
       </div>
       
     </div>
@@ -1463,10 +1441,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-83'>
+  <div class='section' id='section-81'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-83'>#</a>
+        <a class='octothorpe' href='#section-81'>#</a>
       </div>
       <p>Performs a bezier interpolation (recursive).</p>
     </div>
@@ -1475,10 +1453,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-84'>
+  <div class='section' id='section-82'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-84'>#</a>
+        <a class='octothorpe' href='#section-82'>#</a>
       </div>
       
     </div>
@@ -1502,10 +1480,10 @@ primitives/particles on time chance.</p>
     </div>
   </div>
   <div class='clearall'></div>
-  <div class='section' id='section-85'>
+  <div class='section' id='section-83'>
     <div class='docs'>
       <div class='octowrap'>
-        <a class='octothorpe' href='#section-85'>#</a>
+        <a class='octothorpe' href='#section-83'>#</a>
       </div>
       <h3><span id="accessors" href="accessors"> Accessors </span></h3>
     </div>
