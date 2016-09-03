@@ -142,7 +142,6 @@ class Primitive(object):
     # convenience and should be equivalent to the ones provided by the Maya
     # API.
     def move(self, x=0.0, y=0.0, z=0.0):
-        x, y, z = [v for v in (x, y, z) if isinstance(v, int)]
         if x == y == z == 0.0:
             return
         offset = om2.MVector(x, y, z)
@@ -486,6 +485,7 @@ class TrianglePrim(Primitive):
         self._drawPoints = list()  # drawable points
         self._prePoints = list()  # pre-transform points
         self._colors = None
+        self._colorPerPoint = False
         if points:
             self.points = points
         self.colors = colors or COLOR_BLACK
@@ -513,13 +513,14 @@ class TrianglePrim(Primitive):
         if isinstance(value, (list, tuple)):
             self._colors = value
             self.isDirty = True
+            self._colorPerPoint = self._isColorPerPoint()
             return True
         logger.error('Unable to set colors: ' + value)
         return False
 
-    def _is_color_list(self):
-        for each in self.colors:
-            if isinstance(each, (list, tuple)) and len(each) == 3:
+    def _isColorPerPoint(self):
+        for each in self._colors:
+            if isinstance(each, (list, tuple)):
                 return True
         return False
 
@@ -534,23 +535,20 @@ class TrianglePrim(Primitive):
 
     def draw(self, view, renderer):
         super(TrianglePrim, self).draw(view, renderer)
-
         view.beginGL()
         glFT = renderer.glFunctionTable()
-        glFT.glPushAttrib(omr.MGL_LINE_BIT)
+        if self._colorPerPoint:
+            glFT.glShadeModel(omr.MGL_SMOOTH)
+        else:
+            glFT.glColor3f(*self.colors)
         glFT.glBegin(omr.MGL_TRIANGLES)
 
         for i, point in enumerate(self._points):
-            # unpacking the color in a color 3f
-            if self._is_color_list():
+            if self._colorPerPoint:
                 glFT.glColor3f(*self.colors[i])
-            else:
-                glFT.glColor3f(*self.colors)
-            # drawing the point
             glFT.glVertex3f(point.x, point.y, point.z)
 
         glFT.glEnd()
-        glFT.glPopAttrib()
         view.endGL()
 
 
