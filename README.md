@@ -44,6 +44,10 @@ mscreen.refresh()
 Please check the [tests](https://github.com/csaez/mscreen/tree/master/tests) for
 more examples.
 
+## Screecasts
+- Introduction: https://vimeo.com/172564385
+- Callback system: https://vimeo.com/175213925
+
 ## License
 `mscreen` is licensed under MIT, use at your own risk.
 
